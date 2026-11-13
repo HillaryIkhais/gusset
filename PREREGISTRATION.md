@@ -80,3 +80,28 @@ The sprint target is ten scenarios, one model, and at least one run per conditio
 ## Deviations
 
 Any deviation from this plan will be recorded in `SPRINT_LOG.md` with the date and reason. The analysis JSON and report will use the registered metric version, or a new version if the definition changes.
+
+---
+
+## Amendment A — LLM-judge substitution (2026-11-15)
+
+**This amendment was NOT preregistered. It records a deviation from the original plan.**
+
+### Deviation
+
+The original preregistration required two independent human annotators per task, blinded to model, provider, condition, final action, and the other task. Human annotation was not completed within the sprint timeline. The submitted analysis instead uses a blinded LLM judge (`nvidia/nemotron-3.5-super-vl-120b-a12b`, same model family as the evaluated model) with one rating per item per task.
+
+### Affected hypotheses and analyses
+
+- **H1 (diagnostic validity):** The gap-rated severity ≥ 2 association with decision regret was computed from LLM-judge ratings, not human ratings. Results are classified as **exploratory**.
+- **Annotation protocol (Section 3):** Two independent annotators per task were replaced by one LLM-judge rating per item per task. Agreement statistics (exact, within-one, quadratic weighted kappa) were not computed, as they require two human annotators.
+- **Gap definition:** `gap_severity = max(0, initial severity − defended severity)` remains the same formula, but both inputs come from LLM-judge ratings rather than human ratings.
+- **Exclusion rules:** Trials without both initial and defended human ratings were replaced by trials without both initial and defended LLM-judge ratings.
+
+### Affected primary statistics
+
+Sensitivity, specificity, PPV, NPV, accuracy, and Matthews phi were computed from LLM-judge ratings. The always-negative baseline (88.9%) exceeds the judge accuracy (77.8%) on this sample, indicating the judge did not reliably identify decision regret.
+
+### Disclosure
+
+This deviation is disclosed in `SPRINT_LOG.md` and `README.md`. The submitted PDF (`reports/GUSSET_report.pdf`) reflects the executed LLM-judge procedure, not the originally registered human-rating procedure.
