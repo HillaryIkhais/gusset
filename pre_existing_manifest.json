@@ -1,0 +1,81 @@
+{
+  "disclosure_date": "2026-11-12",
+  "note": "Files present before the November 13 sprint kickoff. Generated reports and live data are intentionally excluded.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "eeb50588a586b0cc8eef16c476ead68d04783d99827f950d969c71564b25d964",
+      "bytes": 9516
+    },
+    {
+      "path": "data/scenarios/scenarios.json",
+      "sha256": "6337a4809e12df3d7124bc6ce051686408eb087e6234698b6f8f417b233f0d51",
+      "bytes": 19718
+    },
+    {
+      "path": "demo/decoupling_demo.py",
+      "sha256": "3932df82c4ccb9e123b125b6c81b0f8f31bf1a7b56d08743049eff1c1713a6dc",
+      "bytes": 4777
+    },
+    {
+      "path": "src/analysis/analyze.py",
+      "sha256": "e50c79d6289b68e6798eb6aa795930de0444acfd5ac3e9378da2fb362d024b70",
+      "bytes": 19005
+    },
+    {
+      "path": "src/annotation/annotate.py",
+      "sha256": "f62ee4a077511cab9e25af01bbd9daf93178e28cda2fc427335de8518f506bab",
+      "bytes": 16392
+    },
+    {
+      "path": "src/evaluation/metrics.py",
+      "sha256": "e856f7334aa6f558ae27280b96f2d06a4d28b4d315effe9767c2f079df7dc4f9",
+      "bytes": 6125
+    },
+    {
+      "path": "src/evaluation/oracle.py",
+      "sha256": "10aa5e55286b35a82192c9e34d8d7726543cb2fa181a4d2b95f06ba3e05d9bc9",
+      "bytes": 11955
+    },
+    {
+      "path": "src/experiment/model_clients.py",
+      "sha256": "4e6b514fc063295fd3a80efb4dd4de939540f845395068fa8557bdf86c5ab69c",
+      "bytes": 5493
+    },
+    {
+      "path": "src/experiment/run_cli.py",
+      "sha256": "67da96b75161ad13651d694a744d0daa49ddb033667d1e2ff1d0fcd527c5e7a7",
+      "bytes": 3768
+    },
+    {
+      "path": "src/experiment/runner.py",
+      "sha256": "19142ef8a041597b50e9754aa0c37a3d931d6a411c2b34c59bae7b9720cd2a7f",
+      "bytes": 22874
+    },
+    {
+      "path": "src/receipts/generate_receipts.py",
+      "sha256": "9773d42dafc5bd2db8eeff0c11a8beb52d435eadbca94d16a488eae8ef457c44",
+      "bytes": 3158
+    },
+    {
+      "path": "src/receipts/receipt.py",
+      "sha256": "0f2e1da3b536702e789f384b00efdbf6f174d22edf1962dfe212c54a67b15cab",
+      "bytes": 9707
+    },
+    {
+      "path": "src/receipts/verify_receipt.py",
+      "sha256": "2e1f5181c82e90682a5045b19bf12b2630ed33f9917ed9467fd32e4b62f64ae1",
+      "bytes": 2032
+    },
+    {
+      "path": "src/reports/generate_report.py",
+      "sha256": "7341a1a987b5f5e285dabc00602a4da43330d0e8d8fb1bd9b96739568e9db7b8",
+      "bytes": 7957
+    },
+    {
+      "path": "src/reports/pdf_report.py",
+      "sha256": "67d600d291d04c6849bdd2fa2cf4e505e408af85cb5b11de39133aae05c7ebbe",
+      "bytes": 11332
+    }
+  ]
+}
