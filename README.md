@@ -101,7 +101,7 @@ For the full design, use `--conditions all` and more runs once rate limits allow
 
 ## Epistemic ratings (LLM judge)
 
-Because human annotators were not available within the sprint timeline, the epistemic gap ratings in the submitted analysis were produced by a blinded LLM judge rather than by human annotators. This is a deviation from the originally designed protocol and is disclosed in `PREREGISTRATION.md` (Amendment A, 2026-11-15).
+Because human annotators were not available within the sprint timeline, the epistemic gap ratings in the submitted analysis were produced by a blinded LLM judge rather than by human annotators. This is a deviation from the originally designed protocol and is disclosed in `PREREGISTRATION.md` (Amendment A, 2026-11-13).
 
 The judge receives only the evidence dossier and the claim to rate — it never sees the model's identity, condition, final action, oracle decision, or regret. The initial and defended packets use different opaque item IDs, so the two tasks cannot be matched by identifier.
 
@@ -171,6 +171,8 @@ The verifier recomputes the scenario hash, transcript hashes, every utility, the
 Machine self-reports such as `ACKNOWLEDGEMENT: yes` are preserved in the transcript but are never used as the primary gap measure.
 
 **Annotation source:** The submitted analysis uses `source = "llm_judge"` (one LLM-judge rating per item per task). Human validation is future work.
+
+**Note on metric names:** The internal field names `human_initial_overstatement`, `human_defended_overstatement`, and `human_gap_severity` are legacy field names inherited from the original human-annotation protocol design. They do NOT indicate human ratings. In the submitted analysis, these fields contain values produced by the blinded LLM judge described above.
 
 ## Statistical treatment
 

@@ -83,7 +83,7 @@ Any deviation from this plan will be recorded in `SPRINT_LOG.md` with the date a
 
 ---
 
-## Amendment A — LLM-judge substitution (2026-11-15)
+## Amendment A — LLM-judge substitution (2026-11-13)
 
 **This amendment was NOT preregistered. It records a deviation from the original plan.**
 
