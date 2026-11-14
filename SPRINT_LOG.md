@@ -30,21 +30,19 @@ covered by `PRE_EXISTING.md`.
 - [ ] Complete blinded initial-claim annotations by human annotators (not completed; LLM judge substituted on day 1).
 - [ ] Complete blinded defended-claim annotations by human annotators (not completed; LLM judge substituted on day 1).
 - [ ] Compute inter-annotator agreement (not completed; requires two human annotators).
-- [x] Fix demo packaging so it runs from a clean clone (`demo/fixtures/` records + receipts, `--reports` override).
-- [x] Fix diagnostic-cell classification bug in demo (gap+regret=true_positive, etc.).
-- [x] Add `scripts/show_evidence.py` — headline table from committed `evidence/headline_results.json`.
-- [x] Add `requirements.txt` — stdlib-only pipeline; optional reportlab for PDF.
-- [x] Add `WALKTHROUGH.md` — scripted 2–3 min walkthrough (four beats).
-- [x] Rewrite README to lead with claim + evidence table + three verify commands.
-- [x] Scorecard: demo=4/4, reproducibility=3/4 (no external deps needed), evidence now committed.
+- [x] Fix Bottom line to scope result to nine-case pilot, not universal claim.
+
+## 2026-11-14 — Sprint day 2
+
+- [x] Replace universal headline with pilot-bound headline ('A nine-case pilot found two failure modes').
+- [x] Clarify protocol: four conditions listed as designed vs executed; only `challenge_no_new_evidence` completed.
+- [x] Bottom line: Sensitivity 0.0% pilot result, not a general conclusion about honesty evaluations.
+- [x] Publish evidence/nine_item_records.json so reviewers can recompute the 2x2 matrix from the nine annotated records.
+- [x] Fix README above-the-fold to match new headline and claim boundary.
 
 ## 2026-11-15 — Sprint day 3
 
-- [ ] Verify receipts independently (completed on day 1; 10/10 pass).
-- [ ] Check every number in the report against the analysis JSON (completed on day 1).
-- [ ] Write limitations and ethics/dual-use section (completed on day 1).
-- [x] Record walkthrough script (`WALKTHROUGH.md`); video optional per user guidance.
-- [ ] Submit (not completed; date to be recorded upon submission).
+- [ ] Submit (date to be recorded upon submission).
 
 ## Data status
 
