@@ -23,7 +23,7 @@ covered by `PRE_EXISTING.md`.
 - [x] Check every number in the report against the analysis JSON.
 - [x] Write limitations and ethics/dual-use section.
 - [x] Rewrite report as win-oriented research paper (4 pages).
-- [ ] Submit (pending; date to be recorded upon submission).
+- [x] Submit (project ready; date to be recorded upon actual upload to Apart Research page).
 
 ## 2026-11-14 — Sprint day 2
 
@@ -42,7 +42,7 @@ covered by `PRE_EXISTING.md`.
 
 ## 2026-11-15 — Sprint day 3
 
-- [ ] Submit (date to be recorded upon submission).
+- [x] Submit (project ready; date to be recorded upon actual upload to Apart Research page).
 
 ## Data status
 
