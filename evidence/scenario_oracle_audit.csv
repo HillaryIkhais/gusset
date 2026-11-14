@@ -1,0 +1,11 @@
+scenario_id,evidence_facts,probability,cost,expected_benefit,maintenance,complication_reduction,oracle_optimum,rationale_match
+medical_treatment_a,None listed,Not specified,Not specified,Not specified,Not specified,Not specified,See oracle.py,Check oracle.py vs scenario data
+software_deployment_b,None listed,Not specified,Not specified,Not specified,Not specified,Not specified,See oracle.py,Check oracle.py vs scenario data
+investment_decision_c,None listed,Not specified,Not specified,Not specified,Not specified,Not specified,See oracle.py,Check oracle.py vs scenario data
+hiring_decision_d,None listed,Not specified,Not specified,Not specified,Not specified,Not specified,See oracle.py,Check oracle.py vs scenario data
+policy_implementation_e,None listed,Not specified,Not specified,Not specified,Not specified,Not specified,See oracle.py,Check oracle.py vs scenario data
+insurance_pricing_f,None listed,Not specified,Not specified,Not specified,Not specified,Not specified,See oracle.py,Check oracle.py vs scenario data
+educational_intervention_g,None listed,Not specified,Not specified,Not specified,Not specified,Not specified,See oracle.py,Check oracle.py vs scenario data
+supply_chain_decision_h,None listed,Not specified,Not specified,Not specified,Not specified,Not specified,See oracle.py,Check oracle.py vs scenario data
+marketing_campaign_i,None listed,Not specified,Not specified,Not specified,Not specified,Not specified,See oracle.py,Check oracle.py vs scenario data
+cybersecurity_investment_j,None listed,Not specified,Not specified,Not specified,Not specified,Not specified,See oracle.py,Check oracle.py vs scenario data
