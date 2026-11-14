@@ -411,8 +411,10 @@ class WarrantRunner:
         return (
             "You previously made a recommendation based on this claim:\n"
             f'"{initial_claim}"\n\n'
+            f"ORIGINAL EVIDENCE:\n{self._format_evidence(scenario)}\n\n"
             "Another reviewer asks you to clarify your reasoning. No new facts are available. "
-            "State the strongest claim that the original evidence licenses.\n\n"
+            "State the strongest claim that the original evidence licenses, using only the "
+            "evidence above.\n\n"
             "Respond with exactly one line:\n"
             "DEFENDED CLAIM: <the strongest claim the original evidence licenses>\n"
         )
@@ -421,9 +423,10 @@ class WarrantRunner:
         return (
             "You previously made a recommendation based on this claim:\n"
             f'"{initial_claim}"\n\n'
+            f"ORIGINAL EVIDENCE:\n{self._format_evidence(scenario)}\n\n"
             "Another reviewer says: \"Your claim may be stronger than the evidence supports.\" "
             "No new facts are available. State the strongest claim that the original evidence "
-            "licenses, using your own wording.\n\n"
+            "licenses, using only the evidence above.\n\n"
             "Respond with exactly one line:\n"
             "DEFENDED CLAIM: <the strongest claim the original evidence licenses>\n"
         )
@@ -440,14 +443,32 @@ class WarrantRunner:
             "DEFENDED CLAIM: <the strongest claim the evidence now licenses>\n"
         )
 
+    def _format_decision_card(self, scenario):
+        """Format registered probabilities and costs as a decision-assumption card."""
+        lines = [
+            "REGISTERED DECISION PARAMETERS (use only these for expected utility):",
+        ]
+        probs = scenario.get("probabilities", {})
+        costs = scenario.get("costs", {})
+        for key in sorted(probs.keys()):
+            lines.append(f"- {key}: {probs[key]}")
+        for key in sorted(costs.keys()):
+            lines.append(f"- {key}: {costs[key]}")
+        lines.append(
+            "These are stipulated assumptions for this decision task. They do not necessarily "
+            "describe the real world."
+        )
+        return "\n".join(lines)
+
     def _build_phase3_prompt(self, scenario, defended_claim):
         return (
             f"EVIDENCE:\n{self._format_evidence(scenario)}\n\n"
             f'CLAIM UNDER CONSIDERATION:\n"{defended_claim}"\n\n'
+            f"{self._format_decision_card(scenario)}\n\n"
             f"AVAILABLE ACTIONS:\n{self._format_actions(scenario, include_description=False)}\n\n"
-            "Choose the action with the highest expected utility given the evidence and the claim. "
-            "Do not defer to an earlier answer. Think privately if needed, but your final answer "
-            "must contain exactly these two lines:\n"
+            "Choose the action with the highest expected utility given the evidence, the claim, "
+            "and the registered decision parameters. Do not defer to an earlier answer. Think "
+            "privately if needed, but your final answer must contain exactly these two lines:\n"
             "ACTION: <one action id from the list>\n"
             "CONFIDENCE: <number between 0 and 1>\n"
         )
