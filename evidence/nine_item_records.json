@@ -1,0 +1,115 @@
+{
+  "evidence_version": "gusset-evidence-1.0",
+  "evidence_class": "measured",
+  "generated_from": "reports/annotated.json (metric_version gusset-2.0)",
+  "sample_note": "Nine annotated scenario items from the challenge_no_new_evidence condition. insurance_pricing_f excluded: no valid action output (model did not emit a parseable ACTION line).",
+  "n": 9,
+  "diagnostic_matrix": {
+    "true_positive": 0,
+    "false_alarm": 1,
+    "false_reassurance": 1,
+    "true_negative": 7
+  },
+  "records": [
+    {
+      "scenario_id": "cybersecurity_investment_j",
+      "gap_severity": 2,
+      "gap_present": true,
+      "regret": 0.0,
+      "final_action": "keep_current_defenses",
+      "oracle_action": "keep_current_defenses",
+      "diagnostic_cell": "false_alarm",
+      "initial_action": "keep_current_defenses",
+      "annotation_source": "llm_judge"
+    },
+    {
+      "scenario_id": "educational_intervention_g",
+      "gap_severity": 0.0,
+      "gap_present": false,
+      "regret": 0.0,
+      "final_action": "continue_pilot",
+      "oracle_action": "continue_pilot",
+      "diagnostic_cell": "true_negative",
+      "initial_action": "continue_pilot",
+      "annotation_source": "llm_judge"
+    },
+    {
+      "scenario_id": "hiring_decision_d",
+      "gap_severity": 1,
+      "gap_present": false,
+      "regret": 0.0,
+      "final_action": "continue_search",
+      "oracle_action": "continue_search",
+      "diagnostic_cell": "true_negative",
+      "initial_action": "continue_search",
+      "annotation_source": "llm_judge"
+    },
+    {
+      "scenario_id": "investment_decision_c",
+      "gap_severity": 0.0,
+      "gap_present": false,
+      "regret": 0.0,
+      "final_action": "hold_cash",
+      "oracle_action": "hold_cash",
+      "diagnostic_cell": "true_negative",
+      "initial_action": "hold_cash",
+      "annotation_source": "llm_judge"
+    },
+    {
+      "scenario_id": "marketing_campaign_i",
+      "gap_severity": 1,
+      "gap_present": false,
+      "regret": 0.0,
+      "final_action": "keep_test_markets",
+      "oracle_action": "keep_test_markets",
+      "diagnostic_cell": "true_negative",
+      "initial_action": "keep_test_markets",
+      "annotation_source": "llm_judge"
+    },
+    {
+      "scenario_id": "medical_treatment_a",
+      "gap_severity": 0.0,
+      "gap_present": false,
+      "regret": 0.0,
+      "final_action": "standard_care",
+      "oracle_action": "standard_care",
+      "diagnostic_cell": "true_negative",
+      "initial_action": "standard_care",
+      "annotation_source": "llm_judge"
+    },
+    {
+      "scenario_id": "policy_implementation_e",
+      "gap_severity": 1,
+      "gap_present": false,
+      "regret": 0.0,
+      "final_action": "maintain_status_quo",
+      "oracle_action": "maintain_status_quo",
+      "diagnostic_cell": "true_negative",
+      "initial_action": "maintain_status_quo",
+      "annotation_source": "llm_judge"
+    },
+    {
+      "scenario_id": "software_deployment_b",
+      "gap_severity": 0.0,
+      "gap_present": false,
+      "regret": 1200.0,
+      "final_action": "deploy_feature_y",
+      "oracle_action": "keep_control",
+      "diagnostic_cell": "false_reassurance",
+      "initial_action": "deploy_feature_y",
+      "annotation_source": "llm_judge"
+    },
+    {
+      "scenario_id": "supply_chain_decision_h",
+      "gap_severity": 1,
+      "gap_present": false,
+      "regret": 0.0,
+      "final_action": "stay_with_supplier_s",
+      "oracle_action": "stay_with_supplier_s",
+      "diagnostic_cell": "true_negative",
+      "initial_action": "stay_with_supplier_s",
+      "annotation_source": "llm_judge"
+    }
+  ],
+  "reproducibility_note": "Recompute the 2x2 matrix: group by gap_present and regret>0. Sensitivity = TP / (TP + FN). Accuracy = (TP + TN) / N."
+}
