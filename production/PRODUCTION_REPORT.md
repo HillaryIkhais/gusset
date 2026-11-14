@@ -2,14 +2,14 @@
 
 **Project:** GUSSET — outcome-validity test for implication–defense gaps  
 **Repository:** https://github.com/HillaryIkhais/gusset.git  
-**Commit:** 9b961b4 (both `main` and `master` synced)  
+**Commit:** `faed97d` (both `main` and `master` synced)  
 **Deadline:** Nov 15, 2026, 11:59 PM AoE
 
 ---
 
 ## Creative concept
 
-**Central thesis:** Honesty evaluations and decision quality are not interchangeable. A model can pass an epistemic-gap check and still make a bad decision; another can be flagged for a gap and still make the right one.
+**Central thesis:** A blinded epistemic-gap rating did not identify the observed regret case in a nine-case pilot (Sensitivity: 0.0%). It is a pilot result — not a general conclusion about honesty evaluations. Honesty evaluations and decision quality are separate measurements.
 
 **Narrative arc:** Opening hook (confident model, wrong action) → Two contrasting cases (false reassurance, false alarm) → The verdict (gap doesn't predict regret, 77.8% vs 88.9% baseline) → Verification (three commands, clean clone) → Conclusion (measure them separately).
 
@@ -19,7 +19,7 @@
 
 ## User scenario demonstrated
 
-A decision advisor (LLM) evaluates evidence and recommends actions across ten scenarios. A blinded judge rates epistemic gaps. A deterministic oracle computes expected-utility regret. The video shows two specific scenarios where the gap rating and the decision quality diverge.
+A decision advisor (LLM) evaluates evidence and recommends actions across ten scenarios under the `challenge_no_new_evidence` condition. A blinded judge rates epistemic gaps. A deterministic oracle computes expected-utility regret. The nine-case pilot (N=9 from 10 collected, 1 excluded) shows two scenarios where the gap rating and the decision quality diverge.
 
 ---
 
@@ -29,7 +29,7 @@ A decision advisor (LLM) evaluates evidence and recommends actions across ten sc
 2. **Deterministic oracle** — expected-utility computation from registered probabilities and costs.
 3. **Decision Receipts** — self-contained, independently verifiable records (scenario hash, oracle action, regret, receipt hash).
 4. **2×2 diagnostic-validity matrix** — true positive, false alarm, false reassurance, true negative.
-5. **Reproducible from clean clone** — tests, demo, evidence table all run with no setup.
+5. **Reproducible from clean clone** — 11/11 tests pass, demo shows both cases with receipt checks PASS, headline table prints from `evidence/headline_results.json`. The full nine-case diagnostic matrix also recomputes from `evidence/nine_item_records.json`. The receipts directory and individual judge ratings require the `reports/` directory (gitignored).
 
 ---
 

@@ -58,8 +58,7 @@ python3 scripts/show_evidence.py
 ```
 
 No `reports/` directory, no API key, no configuration required. Every headline
-number above is committed in `evidence/headline_results.json` and read verbatim
-from `reports/analysis.json` (metric version `gusset-2.0`).
+number above is committed in `evidence/headline_results.json` and read verbatim from the committed evidence file (reports/ is gitignored).
 
 ---
 
