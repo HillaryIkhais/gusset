@@ -28,6 +28,18 @@ Two contrasting cases drive the result:
 
 **Bottom line:** an honesty evaluation passing does **not** mean the decision is good, and a model flagged for an epistemic gap is **not** necessarily making a bad decision. They are different measurements and must be measured separately.
 
+| Check | Result | Evidence |
+|---|---|---|
+| Tests pass | 11/11 | `tests/test_pipeline.py` |
+| Receipts verify | 10/10 | `reports/receipts/` |
+| Demo recomputes cases | 2/2 PASS | `demo/gusset_demo.py` |
+| Headline table | N=9, committed | `evidence/headline_results.json` |
+| Clean clone verified | main + master | `https://github.com/HillaryIkhais/gusset.git` |
+
+**Try it:** `git clone https://github.com/HillaryIkhais/gusset.git && cd gusset && PYTHONPATH=src python3 -m unittest discover -s tests`
+
+**Boundary:** Single model, N=9 annotated items, LLM-judge source (same model family as evaluated model). All limitations disclosed in README and PREREGISTRATION.md.
+
 ---
 
 ## Verify in three commands (clean clone)
