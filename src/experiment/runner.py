@@ -28,7 +28,13 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from evaluation.oracle import compute_optimal_action, expected_utility, scenario_for_condition
+from evaluation import oracle as oracle_v1
+from evaluation import oracle_v2 as oracle_v2
+
+# Backward-compatible module-level names
+compute_optimal_action = oracle_v1.compute_optimal_action
+expected_utility = oracle_v1.expected_utility
+scenario_for_condition = oracle_v1.scenario_for_condition
 
 
 DEFAULT_SCENARIOS_PATH = Path(__file__).resolve().parents[2] / "data" / "scenarios" / "scenarios.json"
@@ -171,12 +177,19 @@ class TrialResult:
 
 
 class WarrantRunner:
-    def __init__(self, model_interface, human_annotator=None, scenarios_path=DEFAULT_SCENARIOS_PATH):
+    def __init__(self, model_interface, human_annotator=None, scenarios_path=DEFAULT_SCENARIOS_PATH, oracle_module=None):
         self.model_interface = model_interface
         self.human_annotator = human_annotator
         self.scenarios_path = scenarios_path
         self.scenarios = load_scenarios(scenarios_path)
         self.results = []
+        # Select oracle module based on scenario path; default to v1
+        if oracle_module is not None:
+            self.oracle_module = oracle_module
+        elif str(scenarios_path).endswith('scenarios_v2.json'):
+            self.oracle_module = oracle_v2
+        else:
+            self.oracle_module = oracle_v1
 
     # ------------------------------------------------------------------
     # Public API
@@ -273,17 +286,17 @@ class WarrantRunner:
         result.run_number = run_number
         result.trial_uid = f"{model_name}|{scenario['id']}|{condition}|{run_number}|{run_id}"
 
-        original_oracle = compute_optimal_action(scenario)
+        original_oracle = self.oracle_module.compute_optimal_action(scenario)
         result.original_optimal_action = original_oracle["action"]
         result.original_optimal_utility = original_oracle["utility"]
 
-        condition_scenario = scenario_for_condition(scenario, condition)
+        condition_scenario = self.oracle_module.scenario_for_condition(scenario, condition)
         phase3_scenario = copy.deepcopy(condition_scenario)
         if condition == "new_evidence":
             phase3_scenario.setdefault("evidence_dossier", []).append(
                 condition_scenario.get("new_evidence_applied", "")
             )
-        oracle = compute_optimal_action(condition_scenario)
+        oracle = self.oracle_module.compute_optimal_action(condition_scenario)
         result.optimal_action = oracle["action"]
         result.optimal_utility = oracle["utility"]
         result.all_utilities = oracle["all_utilities"]

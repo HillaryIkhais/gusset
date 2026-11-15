@@ -166,16 +166,16 @@ class OracleTests(unittest.TestCase):
         for threshold in [1, 2, 3]:
             tp = fp = fn = tn = 0
             tp_r = fp_r = fn_r = tn_r = 0  # revision-based
-            tp_res = fp_res = fn_res = tn_r = 0  # residual-based (tn_r reused)
-            tn_res = 0
+            tp_res = fp_res = fn_res = tn_res = 0  # residual-based
 
             for a in annotations:
                 if a["regret"] is None:
                     continue
                 has_regret = a["regret_binary"] == 1
 
-                # Gap-based (clipped revision >= threshold)
-                gap_present = a["gap_binary"] == 1
+                # Gap-based: gap = max(0, init_sev - defd_sev) >= threshold
+                gap = max(0, a["init_sev"] - a["defd_sev"])
+                gap_present = gap >= threshold
                 if gap_present and has_regret:
                     tp += 1
                 elif gap_present and not has_regret:
