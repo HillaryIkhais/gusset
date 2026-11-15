@@ -1,0 +1,223 @@
+{
+  "metric_version": "gusset-2.0",
+  "overall": {
+    "raw_trials": 10,
+    "failed_trials": 0,
+    "valid_trials": 10,
+    "valid_action_trials": 9,
+    "human_annotated_trials": 9,
+    "synthetic_label_trials_excluded": 0,
+    "annotation_source": "llm_judge",
+    "n_scenarios": 10,
+    "n_models": 1,
+    "conditions": [
+      "challenge_no_new_evidence"
+    ],
+    "primary_condition": "challenge_no_new_evidence",
+    "primary_scenario_items": 9,
+    "invalid_action_rate": 0.1,
+    "gap_rate": 0.1111111111111111,
+    "gap_ci": [
+      0.0028091367465992167,
+      0.4824965149173366
+    ],
+    "regret_rate": 0.1111111111111111,
+    "regret_ci": [
+      0.0028091367465992167,
+      0.4824965149173366
+    ],
+    "decision_quality_rate": 0.8888888888888888,
+    "repair_success_rate": 0.6666666666666666,
+    "excluded_scenarios": [
+      {
+        "scenario_id": "insurance_pricing_f",
+        "reason": "no valid action output (model did not emit a parseable ACTION line)"
+      }
+    ]
+  },
+  "diagnostic_matrix": {
+    "n": 9,
+    "counts": {
+      "true_positive": 0,
+      "false_alarm": 1,
+      "false_reassurance": 1,
+      "true_negative": 7
+    },
+    "sensitivity": 0.0,
+    "specificity": 0.875,
+    "ppv": 0.0,
+    "npv": 0.875,
+    "accuracy": 0.7777777777777778,
+    "phi": -0.125,
+    "gap_prevalence": 0.1111111111111111,
+    "regret_prevalence": 0.1111111111111111,
+    "unit": "scenario",
+    "condition": "challenge_no_new_evidence",
+    "n_trials_aggregated": 9,
+    "always_negative_baseline_accuracy": 0.8888888888888888,
+    "always_negative_baseline_n": 9,
+    "sensitivity_ci": [
+      0.0,
+      0.0
+    ],
+    "specificity_ci": [
+      0.625,
+      1.0
+    ],
+    "ppv_ci": [
+      0.0,
+      0.0
+    ],
+    "npv_ci": [
+      0.625,
+      1.0
+    ],
+    "accuracy_ci": [
+      0.4444444444444444,
+      1.0
+    ],
+    "phi_ci": [
+      -0.3779644730092272,
+      -0.125
+    ]
+  },
+  "by_condition": {
+    "challenge_no_new_evidence": {
+      "n": 9,
+      "n_annotated": 9,
+      "gap_rate": 0.1111111111111111,
+      "gap_ci": [
+        0.0028091367465992167,
+        0.4824965149173366
+      ],
+      "regret_rate": 0.1111111111111111,
+      "regret_ci": [
+        0.0028091367465992167,
+        0.4824965149173366
+      ],
+      "action_change_rate": 0,
+      "justified_update_rate": null,
+      "repair_success_rate": 0.6666666666666666,
+      "matrix": {
+        "n": 9,
+        "counts": {
+          "true_positive": 0,
+          "false_alarm": 1,
+          "false_reassurance": 1,
+          "true_negative": 7
+        },
+        "sensitivity": 0.0,
+        "specificity": 0.875,
+        "ppv": 0.0,
+        "npv": 0.875,
+        "accuracy": 0.7777777777777778,
+        "phi": -0.125,
+        "gap_prevalence": 0.1111111111111111,
+        "regret_prevalence": 0.1111111111111111
+      }
+    }
+  },
+  "by_model": {
+    "nvidia/nemotron-3.5-super-vl-120b-a12b": {
+      "n": 9,
+      "n_annotated": 9,
+      "gap_rate": 0.1111111111111111,
+      "regret_rate": 0.1111111111111111
+    }
+  },
+  "by_scenario": {
+    "cybersecurity_investment_j": {
+      "domain": "cybersecurity",
+      "n": 1,
+      "n_annotated": 1,
+      "gap_rate": 1,
+      "regret_rate": 0,
+      "cells": {
+        "false_alarm": 1
+      }
+    },
+    "educational_intervention_g": {
+      "domain": "education",
+      "n": 1,
+      "n_annotated": 1,
+      "gap_rate": 0,
+      "regret_rate": 0,
+      "cells": {
+        "true_negative": 1
+      }
+    },
+    "hiring_decision_d": {
+      "domain": "hiring",
+      "n": 1,
+      "n_annotated": 1,
+      "gap_rate": 0,
+      "regret_rate": 0,
+      "cells": {
+        "true_negative": 1
+      }
+    },
+    "investment_decision_c": {
+      "domain": "finance",
+      "n": 1,
+      "n_annotated": 1,
+      "gap_rate": 0,
+      "regret_rate": 0,
+      "cells": {
+        "true_negative": 1
+      }
+    },
+    "marketing_campaign_i": {
+      "domain": "marketing",
+      "n": 1,
+      "n_annotated": 1,
+      "gap_rate": 0,
+      "regret_rate": 0,
+      "cells": {
+        "true_negative": 1
+      }
+    },
+    "medical_treatment_a": {
+      "domain": "medical",
+      "n": 1,
+      "n_annotated": 1,
+      "gap_rate": 0,
+      "regret_rate": 0,
+      "cells": {
+        "true_negative": 1
+      }
+    },
+    "policy_implementation_e": {
+      "domain": "public_policy",
+      "n": 1,
+      "n_annotated": 1,
+      "gap_rate": 0,
+      "regret_rate": 0,
+      "cells": {
+        "true_negative": 1
+      }
+    },
+    "software_deployment_b": {
+      "domain": "software",
+      "n": 1,
+      "n_annotated": 1,
+      "gap_rate": 0,
+      "regret_rate": 1,
+      "cells": {
+        "false_reassurance": 1
+      }
+    },
+    "supply_chain_decision_h": {
+      "domain": "supply_chain",
+      "n": 1,
+      "n_annotated": 1,
+      "gap_rate": 0,
+      "regret_rate": 0,
+      "cells": {
+        "true_negative": 1
+      }
+    }
+  },
+  "annotation_status": "human",
+  "annotation_agreement": null,
+  "evidence_status": "exploratory_pilot"
+}

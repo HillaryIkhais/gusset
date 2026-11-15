@@ -146,12 +146,12 @@ class OracleTests(unittest.TestCase):
         """Threshold sensitivity computed from source records, not hardcoded."""
         import json
 
-        # Load LLM judge ratings from source evidence files
-        with open(ROOT / "reports" / "llm_judge_initial.json") as f:
+        # Load LLM judge ratings from committed evidence files
+        with open(ROOT / "evidence" / "v1" / "llm_judge_initial.json") as f:
             init_data = json.load(f)
-        with open(ROOT / "reports" / "llm_judge_defended.json") as f:
+        with open(ROOT / "evidence" / "v1" / "llm_judge_defended.json") as f:
             defd_data = json.load(f)
-        with open(ROOT / "reports" / "annotated.json") as f:
+        with open(ROOT / "evidence" / "v1" / "annotated.json") as f:
             records = json.load(f)
 
         # Build scenario -> (init_sev, defd_sev, regret) from source
