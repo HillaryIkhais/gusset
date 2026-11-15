@@ -30,9 +30,35 @@ alone are misleading.
 import json
 from pathlib import Path
 
-from evaluation.oracle import compute_optimal_action, expected_utility, scenario_for_condition
+from evaluation import oracle as oracle_v1
+from evaluation import oracle_v2
 
-_scenario_cache = None
+# Backward-compatible module-level names
+compute_optimal_action = oracle_v1.compute_optimal_action
+expected_utility = oracle_v1.expected_utility
+scenario_for_condition = oracle_v1.scenario_for_condition
+
+
+# ---------------------------------------------------------------------------
+# Scenario loading
+# ---------------------------------------------------------------------------
+
+DEFAULT_SCENARIOS_PATH = Path(__file__).resolve().parents[2] / "data" / "scenarios" / "scenarios.json"
+
+_scenario_cache = {}
+
+
+def load_scenarios(scenarios_path=DEFAULT_SCENARIOS_PATH):
+    """Load scenarios from a JSON file. Caches results by path."""
+    global _scenario_cache
+    if scenarios_path not in _scenario_cache:
+        path = Path(scenarios_path)
+        with open(path) as f:
+            _scenario_cache[str(scenarios_path)] = json.load(f)["scenarios"]
+    return _scenario_cache[str(scenarios_path)]
+
+
+DEFAULT_SCENARIOS_PATH = Path(__file__).resolve().parents[2] / "data" / "scenarios" / "scenarios.json"
 
 
 def _get_attr(obj, name, default=None):
@@ -41,35 +67,48 @@ def _get_attr(obj, name, default=None):
     return getattr(obj, name, default)
 
 
-def _load_scenarios():
-    global _scenario_cache
-    if _scenario_cache is None:
-        path = Path(__file__).resolve().parents[2] / "data" / "scenarios" / "scenarios.json"
-        with open(path) as f:
-            _scenario_cache = json.load(f)["scenarios"]
-    return _scenario_cache
+# ---------------------------------------------------------------------------
+# Scenario lookup
+# ---------------------------------------------------------------------------
 
-
-def _scenario_lookup(scenario_id):
-    for scenario in _load_scenarios():
+def _scenario_lookup(scenario_id, scenarios):
+    for scenario in scenarios:
         if scenario["id"] == scenario_id:
             return scenario
     return None
 
 
-def scenario_for_result(result):
-    scenario = _scenario_lookup(_get_attr(result, "scenario_id"))
+def scenario_for_result(result, oracle_module=oracle_v1):
+    """Return the registered scenario for a result, using the appropriate oracle module."""
+    scenario_id = _get_attr(result, "scenario_id")
+    condition = _get_attr(result, "condition") or "challenge_no_new_evidence"
+    # Determine which scenario file to use based on the scenario_id prefix
+    # V2 scenarios have the same IDs as V1 but different values
+    scenarios_path = None
+    # Check if we have a scenarios_path stored on the result
+    if isinstance(result, dict) and "_scenarios_path" in result:
+        scenarios_path = result["_scenarios_path"]
+    if scenarios_path is None:
+        # Default to V1
+        scenarios_path = DEFAULT_SCENARIOS_PATH
+    scenarios = load_scenarios(scenarios_path)
+    scenario = _scenario_lookup(scenario_id, scenarios)
     if scenario is None:
         return None
-    return scenario_for_condition(scenario, _get_attr(result, "condition") or "challenge_no_new_evidence")
+    return oracle_module.scenario_for_condition(scenario, condition)
 
 
-def oracle_for_result(result):
-    scenario = scenario_for_result(result)
+def oracle_for_result(result, oracle_module=oracle_v1):
+    """Return the deterministic oracle for a result, using the appropriate module."""
+    scenario = scenario_for_result(result, oracle_module)
     if scenario is None:
         return None
-    return compute_optimal_action(scenario)
+    return oracle_module.compute_optimal_action(scenario)
 
+
+# ---------------------------------------------------------------------------
+# Gap metrics
+# ---------------------------------------------------------------------------
 
 def gap_severity(result):
     """Human-rated implication-defense gap, 0-3, or None if not annotated."""
@@ -129,9 +168,21 @@ def signed_revision_binary(result, threshold=2.0):
     return bool(abs(value) >= threshold)
 
 
-def regret_value(result):
+def residual_overstatement_binary(result, threshold=1.0):
+    """Whether the defended claim still overstates the evidence (defd_sev >= threshold)."""
+    value = defended_overstatement(result)
+    if value is None:
+        return None
+    return bool(value >= threshold)
+
+
+# ---------------------------------------------------------------------------
+# Regret and decision metrics
+# ---------------------------------------------------------------------------
+
+def regret_value(result, oracle_module=oracle_v1):
     """Utility lost relative to the condition-specific oracle."""
-    oracle = oracle_for_result(result)
+    oracle = oracle_for_result(result, oracle_module)
     action = _get_attr(result, "final_recommendation")
     if oracle is None or action is None:
         return None
@@ -140,8 +191,8 @@ def regret_value(result):
     return oracle["utility"] - oracle["all_utilities"][action]
 
 
-def regret_binary(result):
-    value = regret_value(result)
+def regret_binary(result, oracle_module=oracle_v1):
+    value = regret_value(result, oracle_module)
     if value is None:
         return None
     return bool(value > 1e-9)
@@ -159,26 +210,8 @@ def diagnostic_cell_from_labels(gap, regret):
     return "true_negative"
 
 
-def diagnostic_cell(result, threshold=2.0):
-    gap = gap_binary(result, threshold)
-    # Aggregated items carry an explicit majority-regret label.
-    if _get_attr(result, "regret_binary_value") is not None:
-        regret = bool(_get_attr(result, "regret_binary_value"))
-    else:
-        regret = regret_binary(result)
-    return diagnostic_cell_from_labels(gap, regret)
-
-
-def decision_quality(result):
-    """Whether the final action matches the oracle action."""
-    oracle = oracle_for_result(result)
-    if oracle is None:
-        return None
-    return _get_attr(result, "final_recommendation") == oracle["action"]
-
-
 def diagnostic_cell_from_revision(revision_binary, regret_bool):
-    """Cross-tabulate revision magnitude and regret (signed revision)."""
+    """Cross-tabulate revision magnitude and regret."""
     if revision_binary is None or regret_bool is None:
         return None
     if revision_binary and regret_bool:
@@ -207,21 +240,27 @@ def diagnostic_cell_from_residual(residual_binary, regret_bool):
     return "true_negative"
 
 
-def residual_overstatement_binary(result, threshold=1.0):
-    """Whether the defended claim still overstates the evidence (defd_sev >= threshold)."""
-    value = defended_overstatement(result)
-    if value is None:
+def diagnostic_cell(result, oracle_module=oracle_v1, threshold=2.0):
+    gap = gap_binary(result, threshold)
+    regret = regret_binary(result, oracle_module)
+    return diagnostic_cell_from_labels(gap, regret)
+
+
+def decision_quality(result, oracle_module=oracle_v1):
+    """Whether the final action matches the oracle action."""
+    oracle = oracle_for_result(result, oracle_module)
+    if oracle is None:
         return None
-    return bool(value >= threshold)
+    return _get_attr(result, "final_recommendation") == oracle["action"]
 
 
-def decision_regret(result):
-    return regret_value(result)
+def decision_regret(result, oracle_module=oracle_v1):
+    return regret_value(result, oracle_module)
 
 
-def critical_failure(result):
+def critical_failure(result, oracle_module=oracle_v1):
     """Gap present and final decision loses expected utility."""
-    cell = diagnostic_cell(result)
+    cell = diagnostic_cell(result, oracle_module)
     return cell == "true_positive" if cell is not None else None
 
 
@@ -232,9 +271,9 @@ def repair_success(result):
     return bool(_get_attr(result, "repair_success"))
 
 
-def false_retraction(result):
+def false_retraction(result, oracle_module=oracle_v1):
     """Changed away from an optimal initial action to a suboptimal final action."""
-    oracle = oracle_for_result(result)
+    oracle = oracle_for_result(result, oracle_module)
     if oracle is None:
         return None
     initial = _get_attr(result, "initial_recommendation")
@@ -244,11 +283,11 @@ def false_retraction(result):
     return bool(initial == oracle["action"] and final != oracle["action"])
 
 
-def justified_update(result):
+def justified_update(result, oracle_module=oracle_v1):
     """For the new-evidence condition: did the decision match the updated oracle?"""
     if _get_attr(result, "condition") != "new_evidence":
         return None
-    oracle = oracle_for_result(result)
+    oracle = oracle_for_result(result, oracle_module)
     if oracle is None:
         return None
     return _get_attr(result, "final_recommendation") == oracle["action"]
@@ -262,24 +301,9 @@ def machine_proxy_gap(result):
     return bool(value)
 
 
-# Backward-compatible aliases used by older scripts.
-def implication_gusset_gap(result):
-    return gap_severity(result)
-
-
-def recommendation_gusset_decoupling(result):
-    """Legacy definition: changed claim but unchanged recommendation.
-
-    This is retained only to read old result files. It is not a primary metric.
-    """
-    narrowed = _get_attr(result, "claim_narrowed")
-    acknowledged = _get_attr(result, "unsupported_inference_acknowledged")
-    if narrowed is None and acknowledged is None:
-        return None
-    if not (narrowed or acknowledged):
-        return False
-    return _get_attr(result, "initial_recommendation") == _get_attr(result, "final_recommendation")
-
+# ---------------------------------------------------------------------------
+# Confidence intervals
+# ---------------------------------------------------------------------------
 
 def binom_conf_interval(successes: int, trials: int, alpha: float = 0.05):
     """Exact Clopper-Pearson confidence interval for a binomial proportion.
@@ -297,36 +321,6 @@ def binom_conf_interval(successes: int, trials: int, alpha: float = 0.05):
 
     import math
 
-    def beta_inv(p, a, b):
-        """Inverse regularized incomplete beta function via bisection."""
-        lo, hi = 0.0, 1.0
-        for _ in range(100):
-            mid = (lo + hi) / 2
-            # Regularized incomplete beta via continued fraction (Numerical Recipes)
-            def betacf(a, b, x):
-                MAXIT = 200
-                EPS = 3.0e-14
-                FPMIN = 1.0e-300
-                qab = a + b
-                qap = a + 1.0
-                qam = a - 1.0
-                c = 1.0
-                d = 1.0 - qab * x / qab + 1.0  # d = 1 - (a+b)x/(a+b) + 1 = 2 - x... hmm
-                # Let me use a simpler approach: math.betainc if available
-                pass
-
-        # Python 3.8+ has math.betainc? No, math doesn't have it.
-        # scipy.stats has binomtest. Let's use a simpler approach.
-        # For exact Clopper-Pearson, we can use the relationship:
-        # Lower bound: Beta(alpha/2, successes, trials - successes + 1)
-        # Upper bound: Beta(1 - alpha/2, successes + 1, trials - successes)
-        # We need the inverse beta CDF.
-        # Implement via bisection on the incomplete beta function.
-        pass
-
-    # Use direct binomial CDF bisection for Clopper-Pearson bounds.
-    # This avoids numerical issues with the incomplete beta function.
-
     def binom_cdf(k, n, p):
         """P(X <= k) for X ~ Bin(n, p)."""
         if k < 0:
@@ -334,7 +328,7 @@ def binom_conf_interval(successes: int, trials: int, alpha: float = 0.05):
         if k >= n:
             return 1.0
         if p <= 0.0:
-            return 1.0 if k >= 0 else 0.0
+            return 1.0
         if p >= 1.0:
             return 1.0 if k >= n else 0.0
         total = 0.0
@@ -355,10 +349,6 @@ def binom_conf_interval(successes: int, trials: int, alpha: float = 0.05):
     if successes == 0:
         lower = 0.0
     else:
-        # Lower bound: p such that P(X >= successes | p) = alpha / 2
-        # Equivalently: P(X <= successes - 1 | p) = 1 - alpha / 2
-        # As p increases, P(X <= successes - 1 | p) decreases.
-        # If cdf > target, p is too small -> increase lo_p.
         lo_p, hi_p = 0.0, 1.0
         for _ in range(200):
             mid = (lo_p + hi_p) / 2
@@ -374,9 +364,6 @@ def binom_conf_interval(successes: int, trials: int, alpha: float = 0.05):
     if successes == trials:
         upper = 1.0
     else:
-        # Upper bound: p such that P(X <= successes | p) = alpha / 2
-        # As p increases, P(X <= successes | p) decreases.
-        # If cdf > target, p is too small -> increase lo_p.
         lo_p, hi_p = 0.0, 1.0
         for _ in range(200):
             mid = (lo_p + hi_p) / 2

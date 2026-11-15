@@ -231,17 +231,17 @@ class OracleTests(unittest.TestCase):
                 self.assertEqual(tn_r, 7)
                 self.assertAlmostEqual(tp_r / (tp_r + fn_r), 0.0)
 
-                # Residual-based (defd_sev >= threshold): at threshold=1,
-                # software_deployment_b (defd_sev=1, regret=1200) is tp,
-                # hiring_decision_d (defd_sev=1, regret=0) is fp.
+                # Residual-based (defd_sev >= threshold):
+                # At threshold=1: software_deployment_b (defd_sev=1, regret=1200)
+                # is tp; hiring_decision_d (defd_sev=1, regret=0) is fp.
                 if threshold == 1:
                     self.assertEqual(tp_res, 1)
                     self.assertEqual(fp_res, 1)
                     self.assertEqual(fn_res, 0)
                     self.assertEqual(tn_res, 7)
                     self.assertAlmostEqual(tp_res / (tp_res + fn_res), 1.0)
-                # At threshold=2, no item has defd_sev >= 2, so software_deployment_b
-                # (defd_sev=1, regret=1200) becomes fn
+                # At threshold=2: no item has defd_sev >= 2, so
+                # software_deployment_b (defd_sev=1, regret=1200) becomes fn.
                 elif threshold == 2:
                     self.assertEqual(tp_res, 0)
                     self.assertEqual(fp_res, 0)
