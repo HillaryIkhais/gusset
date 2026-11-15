@@ -40,7 +40,7 @@
         "complication_cost": 50000
       },
       "optimal_action": "standard_care",
-      "optimal_utility": -1000,
+      "optimal_utility": 0,
       "rationale": "Treatment X's 8 percentage point advantage is not statistically significant (p=0.12). Expected benefit of $2,160 does not justify $4,000 incremental cost. Registered complication_reduction_if_treatment_works=0.6 was not used in v1 oracle.",
       "new_evidence": {
         "description": "An independent 2,000-patient replication found no significant benefit for Treatment X (p = 0.41) and a higher rate of adverse events.",
@@ -475,7 +475,7 @@
         "total_employees": 200
       },
       "optimal_action": "keep_current_defenses",
-      "optimal_utility": -100000,
+      "optimal_utility": 0,
       "rationale": "4 percentage point blocking advantage not statistically significant (p=0.21). With 10 incidents/year and 30% probability of 4% reduction, expected savings = $6,000 vs tool cost $170K. Keeping current defenses remains optimal under both 2-incident and 10-incident registered assumptions.",
       "new_evidence": {
         "description": "A six-month pilot over 10,000 emails found a 15 percentage-point blocking advantage (p = 0.01), and the vendor reduced the annual price to $30,000.",

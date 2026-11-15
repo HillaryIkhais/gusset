@@ -109,7 +109,7 @@ class OracleTests(unittest.TestCase):
             updated = compute_optimal_action(scenario_for_condition(scenario, "new_evidence"))["action"]
             if original != updated:
                 changed += 1
-        self.assertEqual(changed, 7)
+        self.assertEqual(changed, 8)
 
     def test_utility_reference_frames_consistent(self):
         """Every action's utility must be comparable on the same reference scale."""
@@ -135,52 +135,62 @@ class OracleTests(unittest.TestCase):
         scenario = scenarios()["cybersecurity_investment_j"]
         opt = compute_optimal_action(scenario)
         utils = opt["all_utilities"]
-        # keep_current = 0 (baseline), purchase = savings - costs (incremental)
+        # keep_current = -100000 (2 incidents * $50K), purchase = savings - costs (incremental)
         # Both must be on same scale
-        self.assertEqual(utils["keep_current_defenses"], 0)
+        self.assertEqual(utils["keep_current_defenses"], -100000)
         self.assertLess(utils["purchase_tool_k"], 0)
         # Optimal must be max (least negative)
         self.assertEqual(opt["action"], max(utils, key=utils.get))
 
     def test_threshold_results_from_source(self):
         """Threshold sensitivity computed from source records, not hardcoded."""
-        import math
+        import json
 
-        # Source data from reports/annotated.json and llm judge files
-        init_defended = {
-            "software_deployment_b": (1, 1),
-            "cybersecurity_investment_j": (2, 0),
-            "educational_intervention_g": (0, 0),
-            "hiring_decision_d": (2, 1),
-            "insurance_pricing_f": (1, 0),
-            "investment_decision_c": (0, 0),
-            "marketing_campaign_i": (1, 0),
-            "medical_treatment_a": (0, 0),
-            "policy_implementation_e": (1, 0),
-            "supply_chain_decision_h": (1, 0),
-        }
+        # Load LLM judge ratings from source evidence files
+        with open(ROOT / "reports" / "llm_judge_initial.json") as f:
+            init_data = json.load(f)
+        with open(ROOT / "reports" / "llm_judge_defended.json") as f:
+            defd_data = json.load(f)
+        with open(ROOT / "reports" / "annotated.json") as f:
+            records = json.load(f)
 
-        regret = {
-            "software_deployment_b": 1200.0,
-            "cybersecurity_investment_j": 0.0,
-            "educational_intervention_g": 0.0,
-            "hiring_decision_d": 0.0,
-            "insurance_pricing_f": None,
-            "investment_decision_c": 0.0,
-            "marketing_campaign_i": 0.0,
-            "medical_treatment_a": 0.0,
-            "policy_implementation_e": 0.0,
-            "supply_chain_decision_h": 0.0,
+        # Build scenario -> (init_sev, defd_sev, regret) from source
+        init_defended = {}
+        for key, vals in init_data["annotations"].items():
+            if vals:
+                parts = key.split("|")
+                sid = parts[1]
+                if sid not in init_defended:
+                    init_defended[sid] = [None, None]
+                init_defended[sid][0] = vals[0].get("severity")
+
+        for key, vals in defd_data["annotations"].items():
+            if vals:
+                parts = key.split("|")
+                sid = parts[1]
+                if sid not in init_defended:
+                    init_defended[sid] = [None, None]
+                init_defended[sid][1] = vals[0].get("severity")
+
+        regret_map = {}
+        for r in records:
+            if not r.get("error"):
+                regret_map[r["scenario_id"]] = r.get("regret")
+
+        expected_results = {
+            1: {"tp": 0, "fp": 5, "fn": 1, "tn": 3, "accuracy": 3/9},
+            2: {"tp": 0, "fp": 1, "fn": 1, "tn": 7, "accuracy": 7/9},
+            3: {"tp": 0, "fp": 0, "fn": 1, "tn": 8, "accuracy": 8/9},
         }
 
         for threshold in [1, 2, 3]:
             tp = fp = fn = tn = 0
             for sid, (init, defd) in init_defended.items():
-                if regret[sid] is None:
+                if regret_map.get(sid) is None:
                     continue
                 gap = max(0, init - defd)
                 gap_present = gap >= threshold
-                has_regret = regret[sid] > 0
+                has_regret = regret_map[sid] > 0
                 if gap_present and has_regret:
                     tp += 1
                 elif gap_present and not has_regret:
@@ -192,14 +202,14 @@ class OracleTests(unittest.TestCase):
             total = tp + fp + fn + tn
             accuracy = (tp + tn) / total if total > 0 else 0
             sensitivity = tp / (tp + fn) if tp + fn > 0 else None
-            self.assertEqual(total, 9, f"Threshold {threshold}: expected 9 items (insurance_pricing_f excluded: no valid action), got {total}")
-            if threshold == 2:
-                self.assertEqual(tp, 0)
-                self.assertEqual(fp, 1)
-                self.assertEqual(fn, 1)
-                self.assertEqual(tn, 7)
-                self.assertEqual(accuracy, 7/9)
-                self.assertEqual(sensitivity, 0.0)
+            self.assertEqual(total, 9, f"Threshold {threshold}: expected 9 items, got {total}")
+            expected = expected_results[threshold]
+            self.assertEqual(tp, expected["tp"], f"Threshold {threshold}: TP mismatch")
+            self.assertEqual(fp, expected["fp"], f"Threshold {threshold}: FP mismatch")
+            self.assertEqual(fn, expected["fn"], f"Threshold {threshold}: FN mismatch")
+            self.assertEqual(tn, expected["tn"], f"Threshold {threshold}: TN mismatch")
+            self.assertAlmostEqual(accuracy, expected["accuracy"], places=6)
+            self.assertEqual(sensitivity, 0.0, f"Threshold {threshold}: sensitivity should be 0.0")
 
 
 class MetricTests(unittest.TestCase):

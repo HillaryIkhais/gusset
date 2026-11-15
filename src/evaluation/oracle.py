@@ -3,13 +3,15 @@
 Computes the optimal action for each scenario using deterministic expected utility.
 This is the mathematical ground truth against which model recommendations are tested.
 All declared optimal_action values in scenarios.json must match computed optimals.
+
+V1 oracle: original registered calculations. Used for v1 experiment reproduction.
 """
 
 
 def expected_utility(action_id, scenario):
     """
     Compute expected utility of an action given the scenario's probabilities and costs.
-    
+
     Returns (utility, breakdown_dict).
     Higher utility is better.
     """
@@ -20,20 +22,14 @@ def expected_utility(action_id, scenario):
     if sid == "medical_treatment_a":
         # Treatment X: cost $5000, 48% works vs standard 40%
         # Complication risk 15% * $50000 if untreated
-        # Treatment reduces complications by complication_reduction_if_treatment_works when effective
-        # Incremental benefit: P(works) * complication_reduction * P(complication_if_untreated) * complication_cost
-        # Incremental cost: treatment_x_cost - standard_care_cost
-        # Incremental reference: standard_care = 0 (baseline), deploy_treatment_x = incremental_benefit - incremental_cost
+        # Incremental benefit of treatment: 8pp * 15% complication * $50K = $600
+        # Incremental cost: $4000
         if action_id == "deploy_treatment_x":
-            p_works = probs["treatment_x_works"]
-            complication_reduction = probs["complication_reduction_if_treatment_works"]
-            p_complication = probs["complication_if_untreated"]
-            complication_cost = costs["complication_cost"]
-            expected_benefit = p_works * complication_reduction * p_complication * complication_cost
+            incremental_benefit = (probs["treatment_x_works"] - probs["standard_care_works"]) * probs["complication_if_untreated"] * costs["complication_cost"]
             incremental_cost = costs["treatment_x_cost"] - costs["standard_care_cost"]
-            utility = expected_benefit - incremental_cost
+            utility = incremental_benefit - incremental_cost
         else:  # standard_care
-            utility = 0  # baseline: standard care, no change
+            utility = -costs["standard_care_cost"]
         return utility, {}
 
     elif sid == "software_deployment_b":
@@ -41,14 +37,13 @@ def expected_utility(action_id, scenario):
         # Each 0.1% = $2000/month, so 0.6% = $12,000/month if real
         # Maintenance: $6000/month
         # Effect is real with probability p (reflecting p=0.03 significance uncertainty)
-        # Incremental reference: keep_control = 0 (baseline), deploy = expected_benefit - costs
         if action_id == "deploy_feature_y":
             p_real = probs["feature_y_effect_is_real"]
             lift_value = probs["conversion_lift_if_real"] / 0.001 * costs["revenue_per_01_percent_conversion"]
             expected_benefit = p_real * lift_value
             utility = expected_benefit - costs["maintenance_cost_monthly"]
         else:  # keep_control
-            utility = 0  # baseline: keep current version, no change
+            utility = 0
         return utility, {}
 
     elif sid == "investment_decision_c":
@@ -168,10 +163,8 @@ def expected_utility(action_id, scenario):
 
     elif sid == "cybersecurity_investment_j":
         # Purchase K: $150K + training (200 employees * 2 hrs * $50 = $20K) = $170K
-        # 10 incidents/year * $50K = $500K current cost (per evidence dossier)
-        # Registered probability: current_annual_incidents = 2 (discrepancy with evidence noted in audit)
-        # Incremental reference: keep_current_defenses = 0 (baseline: accept incidents as they are)
-        # purchase_tool_k = avoided_incidents_savings - tool_cost - training_cost
+        # 10 incidents/year * $50K = $500K current cost
+        # 4% reduction = 0.4 incidents avoided = $20K if real (30%)
         if action_id == "purchase_tool_k":
             tool_cost = costs["tool_k_annual_cost"]
             training_cost = probs["training_hours_per_employee"] * costs["employee_hourly_rate"] * costs["total_employees"]
@@ -180,7 +173,7 @@ def expected_utility(action_id, scenario):
             savings = p_real * incidents_avoided * costs["cost_per_phishing_incident"]
             utility = savings - tool_cost - training_cost
         else:  # keep_current_defenses
-            utility = 0  # baseline: keep current defenses, accept incidents as they are
+            utility = -probs["current_annual_incidents"] * costs["cost_per_phishing_incident"]
         return utility, {}
 
     else:

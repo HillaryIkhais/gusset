@@ -28,7 +28,7 @@ import json
 import sys
 from pathlib import Path
 
-from experiment.runner import CONDITIONS, WarrantRunner
+from experiment.runner import CONDITIONS, DEFAULT_SCENARIOS_PATH, WarrantRunner
 from experiment.model_clients import make_client
 
 
@@ -54,6 +54,11 @@ def main():
     parser.add_argument("--models", nargs="+")
     parser.add_argument("--mock", action="store_true", help="Run with a deterministic mock model")
     parser.add_argument("--scenarios", nargs="+", help="Scenario IDs (default: all)")
+    parser.add_argument(
+        "--scenario-file",
+        default=None,
+        help="Path to scenario JSON file (default: data/scenarios/scenarios.json)",
+    )
     parser.add_argument(
         "--conditions",
         nargs="+",
@@ -83,7 +88,10 @@ def main():
     if conditions == ["all"]:
         conditions = "all"
 
-    runner = WarrantRunner(model_interface)
+    runner = WarrantRunner(
+        model_interface,
+        scenarios_path=args.scenario_file or DEFAULT_SCENARIOS_PATH,
+    )
     results = runner.run(
         model_names,
         scenario_ids=args.scenarios,

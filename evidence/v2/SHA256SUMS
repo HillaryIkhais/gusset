@@ -2,7 +2,7 @@
   "schema_version": "2.0",
   "scenarios_count": 10,
   "scenario_hashes": {
-    "medical_treatment_a": "f40d3f696a8092412bb1753aa7ec45e15047300a81c4c33b7c7660f0cec46f8b",
+    "medical_treatment_a": "f2b6a69a9019e6a3e28ad2493345d458cf12d858b1669bbfd4e8a012b8fb2c44",
     "software_deployment_b": "e7c28d3568319411e3695cbc7e4adb3a16aa6cc3b004953d9b80d0b7569cf7b5",
     "investment_decision_c": "5d030efbed0ac34d3d7577a980c10a53e45ca09f75d4f6f03db156471aa4548c",
     "hiring_decision_d": "796a72029927a6e0a392a5e3a79d024ebda81c707cea3b322b671d599e8651ec",
@@ -11,7 +11,7 @@
     "educational_intervention_g": "cb42aab20a27b6c08569c2c907687ac97716681518e0e716b5a8534ee4d65b46",
     "supply_chain_decision_h": "cace639bf1680dbc5f9bc6b8e5cf2bbe90994b7dabe2c17328ab06775b0888a7",
     "marketing_campaign_i": "26a20c06622ad44e5b999926aff416a6d89194ac9ea990bb3352500c0f9baeb2",
-    "cybersecurity_investment_j": "5baebb0514f521dd66a9604dc8a031a0443241e6744acc62e9901f0df957a133"
+    "cybersecurity_investment_j": "bf846588abc6c4fbf71ea924cf0fbeb50fe6621f26184ca3ce6a20c80b8cb37a"
   },
   "created_from": "v1 scenarios.json",
   "corrections_applied": [
