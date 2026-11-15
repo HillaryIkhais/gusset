@@ -43,6 +43,10 @@ covered by `PRE_EXISTING.md`.
 ## 2026-11-15 — Sprint day 3
 
 - [x] Submit (project ready; date to be recorded upon actual upload to Apart Research page).
+- [x] P0: Exact binomial confidence intervals for all diagnostic metrics (sensitivity, specificity, PPV, NPV, accuracy).
+- [x] P0: Signed revision metric added (init_sev − defd_sev, not clipped to zero).
+- [x] P0: Three-measurement framework documented (init_sev, defd_sev, gap_severity, regret).
+- [x] P0: Uncertainty explicitly stated — nine-case pilot, single regret-positive observation.
 
 ## Data status
 
@@ -63,3 +67,11 @@ covered by `PRE_EXISTING.md`.
 ## Methodological deviations
 
 Human annotation was not completed within the sprint timeline. The submitted analysis uses a blinded LLM judge (`nvidia/nemotron-3.5-super-vl-120b-a12b`, same model family as the evaluated model) with one rating per item per task instead of two independent human annotators per task. This deviation is documented in `PREREGISTRATION.md` (Amendment A, 2026-11-13). Resulting judge-based diagnostic findings are classified as exploratory.
+
+## Critical sample-size limitation (P0)
+
+The pilot contains exactly **one regret-positive scenario** among nine annotated items (software_deployment_b). All sensitivity, PPV, and related proportions therefore have a denominator of 1, producing extremely wide confidence intervals (e.g., sensitivity 0.0% with 95% CI [0.0%–97.5%]). The residual-overstatement diagnostic (defd_sev >= 1) identifies the regret case with 100% sensitivity, but this is 1/1 and cannot be interpreted as evidence of predictive validity. All results from this pilot must be read as preliminary and hypothesis-generating only.
+
+Thresholds (>=1, >=2, >=3) were preregistered and not selected post-hoc based on results. No threshold should be interpreted as validated on this sample size.
+
+All nine scenarios are retained in the analysis; none are excluded or filtered for convenience.

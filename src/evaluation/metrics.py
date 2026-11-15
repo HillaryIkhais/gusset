@@ -18,6 +18,13 @@ diagnostic cell
 
 Machine self-reports (``ACKNOWLEDGEMENT: yes``) are never used as the primary
 gap measure. They are retained only as raw transcript data.
+
+Uncertainty quantification
+--------------------------
+Binomial proportion confidence intervals use the exact Clopper-Pearson
+method. With small denominators (e.g., n=1), intervals are necessarily wide.
+This uncertainty must be reported alongside every proportion; percentages
+alone are misleading.
 """
 
 import json
@@ -272,3 +279,189 @@ def recommendation_gusset_decoupling(result):
     if not (narrowed or acknowledged):
         return False
     return _get_attr(result, "initial_recommendation") == _get_attr(result, "final_recommendation")
+
+
+def binom_conf_interval(successes: int, trials: int, alpha: float = 0.05):
+    """Exact Clopper-Pearson confidence interval for a binomial proportion.
+
+    Returns (lower, upper) as fractions in [0, 1]. With small denominators
+    (e.g., n=1), intervals are necessarily wide and must be reported alongside
+    any point estimate.
+
+    Raises ValueError if trials <= 0.
+    """
+    if trials <= 0:
+        raise ValueError("trials must be positive")
+    if successes < 0 or successes > trials:
+        raise ValueError("successes must be in [0, trials]")
+
+    import math
+
+    def beta_inv(p, a, b):
+        """Inverse regularized incomplete beta function via bisection."""
+        lo, hi = 0.0, 1.0
+        for _ in range(100):
+            mid = (lo + hi) / 2
+            # Regularized incomplete beta via continued fraction (Numerical Recipes)
+            def betacf(a, b, x):
+                MAXIT = 200
+                EPS = 3.0e-14
+                FPMIN = 1.0e-300
+                qab = a + b
+                qap = a + 1.0
+                qam = a - 1.0
+                c = 1.0
+                d = 1.0 - qab * x / qab + 1.0  # d = 1 - (a+b)x/(a+b) + 1 = 2 - x... hmm
+                # Let me use a simpler approach: math.betainc if available
+                pass
+
+        # Python 3.8+ has math.betainc? No, math doesn't have it.
+        # scipy.stats has binomtest. Let's use a simpler approach.
+        # For exact Clopper-Pearson, we can use the relationship:
+        # Lower bound: Beta(alpha/2, successes, trials - successes + 1)
+        # Upper bound: Beta(1 - alpha/2, successes + 1, trials - successes)
+        # We need the inverse beta CDF.
+        # Implement via bisection on the incomplete beta function.
+        pass
+
+    # Use direct binomial CDF bisection for Clopper-Pearson bounds.
+    # This avoids numerical issues with the incomplete beta function.
+
+    def binom_cdf(k, n, p):
+        """P(X <= k) for X ~ Bin(n, p)."""
+        if k < 0:
+            return 0.0
+        if k >= n:
+            return 1.0
+        if p <= 0.0:
+            return 1.0 if k >= 0 else 0.0
+        if p >= 1.0:
+            return 1.0 if k >= n else 0.0
+        total = 0.0
+        log_p = math.log(p)
+        log_1mp = math.log(1.0 - p)
+        log_binom_n = math.lgamma(n + 1)
+        for i in range(k + 1):
+            log_term = (
+                log_binom_n
+                - math.lgamma(i + 1)
+                - math.lgamma(n - i + 1)
+                + i * log_p
+                + (n - i) * log_1mp
+            )
+            total += math.exp(log_term)
+        return min(total, 1.0)
+
+    if successes == 0:
+        lower = 0.0
+    else:
+        # Lower bound: p such that P(X >= successes | p) = alpha / 2
+        # Equivalently: P(X <= successes - 1 | p) = 1 - alpha / 2
+        # As p increases, P(X <= successes - 1 | p) decreases.
+        # If cdf > target, p is too small -> increase lo_p.
+        lo_p, hi_p = 0.0, 1.0
+        for _ in range(200):
+            mid = (lo_p + hi_p) / 2
+            if mid == 0.0 or mid == 1.0:
+                break
+            cdf_val = binom_cdf(successes - 1, trials, mid)
+            if cdf_val > 1.0 - alpha / 2:
+                lo_p = mid
+            else:
+                hi_p = mid
+        lower = (lo_p + hi_p) / 2
+
+    if successes == trials:
+        upper = 1.0
+    else:
+        # Upper bound: p such that P(X <= successes | p) = alpha / 2
+        # As p increases, P(X <= successes | p) decreases.
+        # If cdf > target, p is too small -> increase lo_p.
+        lo_p, hi_p = 0.0, 1.0
+        for _ in range(200):
+            mid = (lo_p + hi_p) / 2
+            if mid == 0.0 or mid == 1.0:
+                break
+            cdf_val = binom_cdf(successes, trials, mid)
+            if cdf_val > alpha / 2:
+                lo_p = mid
+            else:
+                hi_p = mid
+        upper = (lo_p + hi_p) / 2
+
+    return (lower, upper)
+
+
+def diagnostic_confidence_interval(tp, fp, fn, tn, alpha=0.05):
+    """Compute exact Clopper-Pearson CIs for sensitivity, specificity,
+    PPV, NPV, and accuracy from a 2x2 table.
+
+    Returns a dict with keys:
+      sensitivity, specificity, ppv, npv, accuracy
+    Each value is (point_estimate, ci_lower, ci_upper, denominator).
+    Proportions with denominator 0 report None for the estimate and interval.
+    """
+    results = {}
+
+    # Sensitivity = TP / (TP + FN)
+    den_sens = tp + fn
+    if den_sens > 0:
+        sens = tp / den_sens
+        sens_ci = binom_conf_interval(tp, den_sens, alpha)
+        results["sensitivity"] = (sens, sens_ci[0], sens_ci[1], den_sens)
+    else:
+        results["sensitivity"] = (None, None, None, 0)
+
+    # Specificity = TN / (TN + FP)
+    den_spec = tn + fp
+    if den_spec > 0:
+        spec = tn / den_spec
+        spec_ci = binom_conf_interval(tn, den_spec, alpha)
+        results["specificity"] = (spec, spec_ci[0], spec_ci[1], den_spec)
+    else:
+        results["specificity"] = (None, None, None, 0)
+
+    # PPV = TP / (TP + FP)
+    den_ppv = tp + fp
+    if den_ppv > 0:
+        ppv = tp / den_ppv
+        ppv_ci = binom_conf_interval(tp, den_ppv, alpha)
+        results["ppv"] = (ppv, ppv_ci[0], ppv_ci[1], den_ppv)
+    else:
+        results["ppv"] = (None, None, None, 0)
+
+    # NPV = TN / (TN + FN)
+    den_npv = tn + fn
+    if den_npv > 0:
+        npv = tn / den_npv
+        npv_ci = binom_conf_interval(tn, den_npv, alpha)
+        results["npv"] = (npv, npv_ci[0], npv_ci[1], den_npv)
+    else:
+        results["npv"] = (None, None, None, 0)
+
+    # Accuracy = (TP + TN) / (TP + FP + FN + TN)
+    den_acc = tp + fp + fn + tn
+    if den_acc > 0:
+        acc = (tp + tn) / den_acc
+        acc_ci = binom_conf_interval(tp + tn, den_acc, alpha)
+        results["accuracy"] = (acc, acc_ci[0], acc_ci[1], den_acc)
+    else:
+        results["accuracy"] = (None, None, None, 0)
+
+    return results
+
+
+def diagnostic_summary_from_counts(tp, fp, fn, tn, alpha=0.05):
+    """Human-readable summary of a 2x2 diagnostic table with CIs."""
+    ci = diagnostic_confidence_interval(tp, fp, fn, tn, alpha)
+    lines = []
+    for metric in ["sensitivity", "specificity", "ppv", "npv", "accuracy"]:
+        est, lo, hi, den = ci[metric]
+        if est is None:
+            lines.append(f"  {metric}: undefined (denominator=0)")
+        else:
+            lines.append(
+                f"  {metric}: {est*100:.1f}% "
+                f"(95% CI {lo*100:.1f}%–{hi*100:.1f}%, n={den})"
+            )
+    return "\n".join(lines)

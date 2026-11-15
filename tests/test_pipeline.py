@@ -5,9 +5,11 @@ from pathlib import Path
 
 from annotation.annotate import _quadratic_weighted_kappa, merge_annotation_files
 from evaluation.metrics import (
+    binom_conf_interval,
     diagnostic_cell,
     diagnostic_cell_from_revision,
     diagnostic_cell_from_residual,
+    diagnostic_confidence_interval,
     gap_binary,
     regret_value,
     residual_overstatement_binary,
@@ -246,6 +248,23 @@ class OracleTests(unittest.TestCase):
                     self.assertEqual(fn_res, 1)
                     self.assertEqual(tn_res, 8)
 
+            # Report exact binomial CIs for transparency
+            ci = diagnostic_confidence_interval(tp, fp, fn, tn)
+            ci_r = diagnostic_confidence_interval(tp_r, fp_r, fn_r, tn_r)
+            ci_res = diagnostic_confidence_interval(tp_res, fp_res, fn_res, tn_res)
+            print(f"\n  Threshold {threshold} diagnostic CIs:")
+            for metric in ["sensitivity", "specificity", "ppv", "npv", "accuracy"]:
+                est, lo, hi, den = ci[metric]
+                est_r, lo_r, hi_r, den_r = ci_r[metric]
+                est_res, lo_res, hi_res, den_res = ci_res[metric]
+                print(f"    {metric}:")
+                print(f"      gap-based:     {est*100:.1f}% [{lo*100:.1f}%–{hi*100:.1f}%] n={den}"
+                      if est is not None else f"      gap-based:     undefined (n={den})")
+                print(f"      revision-based:{est_r*100:.1f}% [{lo_r*100:.1f}%–{hi_r*100:.1f}%] n={den_r}"
+                      if est_r is not None else f"      revision-based: undefined (n={den_r})")
+                print(f"      residual-based:{est_res*100:.1f}% [{lo_res*100:.1f}%–{hi_res*100:.1f}%] n={den_res}"
+                      if est_res is not None else f"      residual-based: undefined (n={den_res})")
+
 
 class MetricTests(unittest.TestCase):
     def test_cells(self):
@@ -298,6 +317,47 @@ class MetricTests(unittest.TestCase):
         r = {"human_defended_overstatement": 1}
         self.assertTrue(residual_overstatement_binary(r, threshold=1))
         self.assertFalse(residual_overstatement_binary(r, threshold=2))
+
+    def test_binom_conf_interval(self):
+        """Exact Clopper-Pearson confidence intervals."""
+        # 0/1: 0% with wide CI [0, 0.975]
+        lo, hi = binom_conf_interval(0, 1)
+        self.assertEqual(lo, 0.0)
+        self.assertAlmostEqual(hi, 0.975, places=2)
+
+        # 1/1: 100% with CI [0.025, 1]
+        lo, hi = binom_conf_interval(1, 1)
+        self.assertAlmostEqual(lo, 0.025, places=2)
+        self.assertEqual(hi, 1.0)
+
+        # 7/9: 77.8% with CI
+        lo, hi = binom_conf_interval(7, 9)
+        self.assertGreaterEqual(lo, 0.0)
+        self.assertLessEqual(hi, 1.0)
+        self.assertGreater(lo, 0.0)
+
+        # 0/9: 0% with CI [0, ~0.27]
+        lo, hi = binom_conf_interval(0, 9)
+        self.assertEqual(lo, 0.0)
+        self.assertGreater(hi, 0.0)
+        self.assertLess(hi, 0.5)
+
+    def test_diagnostic_confidence_interval(self):
+        """Full CI reporting for a 2x2 table."""
+        ci = diagnostic_confidence_interval(0, 1, 1, 7)
+        # Sensitivity = 0/1 = 0%, CI [0, 0.975]
+        self.assertEqual(ci["sensitivity"][0], 0.0)
+        self.assertEqual(ci["sensitivity"][1], 0.0)
+        self.assertAlmostEqual(ci["sensitivity"][2], 0.975, places=2)
+        self.assertEqual(ci["sensitivity"][3], 1)
+
+        # Specificity = 7/8 = 87.5%
+        self.assertEqual(ci["specificity"][0], 7/8)
+        self.assertEqual(ci["specificity"][3], 8)
+
+        # Accuracy = 7/9 = 77.8%
+        self.assertEqual(ci["accuracy"][0], 7/9)
+        self.assertEqual(ci["accuracy"][3], 9)
 
     def test_diagnostic_cell_from_revision(self):
         """Revision-based diagnostic cell."""
