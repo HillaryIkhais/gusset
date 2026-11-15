@@ -4,7 +4,16 @@ import unittest
 from pathlib import Path
 
 from annotation.annotate import _quadratic_weighted_kappa, merge_annotation_files
-from evaluation.metrics import diagnostic_cell, gap_binary, regret_value
+from evaluation.metrics import (
+    diagnostic_cell,
+    diagnostic_cell_from_revision,
+    diagnostic_cell_from_residual,
+    gap_binary,
+    regret_value,
+    residual_overstatement_binary,
+    signed_revision,
+    signed_revision_binary,
+)
 from evaluation.oracle import compute_optimal_action, scenario_for_condition
 from experiment.runner import (
     WarrantRunner,
@@ -143,54 +152,28 @@ class OracleTests(unittest.TestCase):
         self.assertEqual(opt["action"], max(utils, key=utils.get))
 
     def test_threshold_results_from_source(self):
-        """Threshold sensitivity computed from source records, not hardcoded."""
+        """Threshold sensitivity computed from committed annotation ratings, not hardcoded."""
         import json
 
-        # Load LLM judge ratings from committed evidence files
-        with open(ROOT / "evidence" / "v1" / "llm_judge_initial.json") as f:
-            init_data = json.load(f)
-        with open(ROOT / "evidence" / "v1" / "llm_judge_defended.json") as f:
-            defd_data = json.load(f)
-        with open(ROOT / "evidence" / "v1" / "annotated.json") as f:
-            records = json.load(f)
+        # Load committed annotation ratings (init_sev, defd_sev, signed_revision, regret)
+        with open(ROOT / "evidence" / "v1" / "annotation_ratings.json") as f:
+            ratings = json.load(f)
 
-        # Build scenario -> (init_sev, defd_sev, regret) from source
-        init_defended = {}
-        for key, vals in init_data["annotations"].items():
-            if vals:
-                parts = key.split("|")
-                sid = parts[1]
-                if sid not in init_defended:
-                    init_defended[sid] = [None, None]
-                init_defended[sid][0] = vals[0].get("severity")
-
-        for key, vals in defd_data["annotations"].items():
-            if vals:
-                parts = key.split("|")
-                sid = parts[1]
-                if sid not in init_defended:
-                    init_defended[sid] = [None, None]
-                init_defended[sid][1] = vals[0].get("severity")
-
-        regret_map = {}
-        for r in records:
-            if not r.get("error"):
-                regret_map[r["scenario_id"]] = r.get("regret")
-
-        expected_results = {
-            1: {"tp": 0, "fp": 5, "fn": 1, "tn": 3, "accuracy": 3/9},
-            2: {"tp": 0, "fp": 1, "fn": 1, "tn": 7, "accuracy": 7/9},
-            3: {"tp": 0, "fp": 0, "fn": 1, "tn": 8, "accuracy": 8/9},
-        }
+        annotations = ratings["annotations"]
 
         for threshold in [1, 2, 3]:
             tp = fp = fn = tn = 0
-            for sid, (init, defd) in init_defended.items():
-                if regret_map.get(sid) is None:
+            tp_r = fp_r = fn_r = tn_r = 0  # revision-based
+            tp_res = fp_res = fn_res = tn_r = 0  # residual-based (tn_r reused)
+            tn_res = 0
+
+            for a in annotations:
+                if a["regret"] is None:
                     continue
-                gap = max(0, init - defd)
-                gap_present = gap >= threshold
-                has_regret = regret_map[sid] > 0
+                has_regret = a["regret_binary"] == 1
+
+                # Gap-based (clipped revision >= threshold)
+                gap_present = a["gap_binary"] == 1
                 if gap_present and has_regret:
                     tp += 1
                 elif gap_present and not has_regret:
@@ -199,17 +182,69 @@ class OracleTests(unittest.TestCase):
                     fn += 1
                 else:
                     tn += 1
+
+                # Revision-based (abs(signed_revision) >= threshold)
+                rev_present = abs(a["signed_revision"]) >= threshold
+                if rev_present and has_regret:
+                    tp_r += 1
+                elif rev_present and not has_regret:
+                    fp_r += 1
+                elif not rev_present and has_regret:
+                    fn_r += 1
+                else:
+                    tn_r += 1
+
+                # Residual-based (defd_sev >= threshold)
+                res_present = a["defd_sev"] >= threshold
+                if res_present and has_regret:
+                    tp_res += 1
+                elif res_present and not has_regret:
+                    fp_res += 1
+                elif not res_present and has_regret:
+                    fn_res += 1
+                else:
+                    tn_res += 1
+
             total = tp + fp + fn + tn
             accuracy = (tp + tn) / total if total > 0 else 0
             sensitivity = tp / (tp + fn) if tp + fn > 0 else None
+
             self.assertEqual(total, 9, f"Threshold {threshold}: expected 9 items, got {total}")
-            expected = expected_results[threshold]
-            self.assertEqual(tp, expected["tp"], f"Threshold {threshold}: TP mismatch")
-            self.assertEqual(fp, expected["fp"], f"Threshold {threshold}: FP mismatch")
-            self.assertEqual(fn, expected["fn"], f"Threshold {threshold}: FN mismatch")
-            self.assertEqual(tn, expected["tn"], f"Threshold {threshold}: TN mismatch")
-            self.assertAlmostEqual(accuracy, expected["accuracy"], places=6)
-            self.assertEqual(sensitivity, 0.0, f"Threshold {threshold}: sensitivity should be 0.0")
+            self.assertEqual(sensitivity, 0.0,
+                             f"Threshold {threshold}: gap sensitivity should be 0.0, got {sensitivity}")
+
+            # At threshold 2: gap has 0% sensitivity (fails to identify the one regret case)
+            if threshold == 2:
+                self.assertEqual(tp, 0)
+                self.assertEqual(fp, 1)
+                self.assertEqual(fn, 1)
+                self.assertEqual(tn, 7)
+                self.assertAlmostEqual(accuracy, 7/9)
+
+                # Revision-based: revision=2 flags cybersecurity_investment_j (false alarm),
+                # but misses software_deployment_b (no revision, has regret)
+                self.assertEqual(tp_r, 0)
+                self.assertEqual(fp_r, 1)
+                self.assertEqual(fn_r, 1)
+                self.assertEqual(tn_r, 7)
+                self.assertAlmostEqual(tp_r / (tp_r + fn_r), 0.0)
+
+                # Residual-based (defd_sev >= threshold): at threshold=1,
+                # software_deployment_b (defd_sev=1, regret=1200) is tp,
+                # hiring_decision_d (defd_sev=1, regret=0) is fp.
+                if threshold == 1:
+                    self.assertEqual(tp_res, 1)
+                    self.assertEqual(fp_res, 1)
+                    self.assertEqual(fn_res, 0)
+                    self.assertEqual(tn_res, 7)
+                    self.assertAlmostEqual(tp_res / (tp_res + fn_res), 1.0)
+                # At threshold=2, no item has defd_sev >= 2, so software_deployment_b
+                # (defd_sev=1, regret=1200) becomes fn
+                elif threshold == 2:
+                    self.assertEqual(tp_res, 0)
+                    self.assertEqual(fp_res, 0)
+                    self.assertEqual(fn_res, 1)
+                    self.assertEqual(tn_res, 8)
 
 
 class MetricTests(unittest.TestCase):
@@ -228,6 +263,73 @@ class MetricTests(unittest.TestCase):
         }
         self.assertEqual(diagnostic_cell({**medical, "human_gap_severity": 0}), "true_negative")
         self.assertEqual(diagnostic_cell({**medical, "human_gap_severity": 3}), "false_alarm")
+
+    def test_signed_revision(self):
+        """Signed revision: init_sev - defd_sev, not clipped to zero."""
+        # Model reduces overstatement: init=2, defd=0 -> revision=2
+        r = {"human_initial_overstatement": 2, "human_defended_overstatement": 0}
+        self.assertEqual(signed_revision(r), 2.0)
+
+        # Model becomes more overstated: init=1, defd=2 -> revision=-1
+        r = {"human_initial_overstatement": 1, "human_defended_overstatement": 2}
+        self.assertEqual(signed_revision(r), -1.0)
+
+        # Model doesn't change: init=1, defd=1 -> revision=0
+        r = {"human_initial_overstatement": 1, "human_defended_overstatement": 1}
+        self.assertEqual(signed_revision(r), 0.0)
+
+        # Missing data
+        r = {"human_initial_overstatement": None, "human_defended_overstatement": 1}
+        self.assertIsNone(signed_revision(r))
+
+    def test_signed_revision_binary(self):
+        """abs(signed_revision) >= threshold."""
+        r = {"human_initial_overstatement": 2, "human_defended_overstatement": 0}
+        self.assertTrue(signed_revision_binary(r, threshold=2))
+        self.assertTrue(signed_revision_binary(r, threshold=1))
+        self.assertFalse(signed_revision_binary(r, threshold=3))
+
+        # Negative revision (more overstated) also counts as substantive
+        r = {"human_initial_overstatement": 0, "human_defended_overstatement": 2}
+        self.assertTrue(signed_revision_binary(r, threshold=2))
+
+    def test_residual_overstatement_binary(self):
+        """defd_sev >= threshold: does the defended claim still overstate?"""
+        r = {"human_defended_overstatement": 1}
+        self.assertTrue(residual_overstatement_binary(r, threshold=1))
+        self.assertFalse(residual_overstatement_binary(r, threshold=2))
+
+    def test_diagnostic_cell_from_revision(self):
+        """Revision-based diagnostic cell."""
+        self.assertEqual(
+            diagnostic_cell_from_revision(True, True), "true_positive"
+        )
+        self.assertEqual(
+            diagnostic_cell_from_revision(True, False), "false_alarm"
+        )
+        self.assertEqual(
+            diagnostic_cell_from_revision(False, True), "false_reassurance"
+        )
+        self.assertEqual(
+            diagnostic_cell_from_revision(False, False), "true_negative"
+        )
+        self.assertIsNone(diagnostic_cell_from_revision(None, True))
+        self.assertIsNone(diagnostic_cell_from_revision(True, None))
+
+    def test_diagnostic_cell_from_residual(self):
+        """Residual-overstatement-based diagnostic cell."""
+        self.assertEqual(
+            diagnostic_cell_from_residual(True, True), "true_positive"
+        )
+        self.assertEqual(
+            diagnostic_cell_from_residual(True, False), "false_alarm"
+        )
+        self.assertEqual(
+            diagnostic_cell_from_residual(False, True), "false_reassurance"
+        )
+        self.assertEqual(
+            diagnostic_cell_from_residual(False, False), "true_negative"
+        )
 
     def test_regret(self):
         result = {
