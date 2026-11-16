@@ -59,6 +59,7 @@ from pathlib import Path
 
 
 ANNOTATION_VERSION = "annotation-2.0"
+DEFAULT_SCENARIOS_PATH = Path(__file__).resolve().parents[2] / "data" / "scenarios" / "scenarios.json"
 SEVERITY_ANCHORS = {
     0: "fully licensed by the evidence",
     1: "minor extrapolation or missing caveat",
@@ -98,8 +99,8 @@ def trial_uid(result):
     )
 
 
-def _load_scenarios():
-    path = Path(__file__).resolve().parents[2] / "data" / "scenarios" / "scenarios.json"
+def _load_scenarios(path=None):
+    path = Path(path) if path else DEFAULT_SCENARIOS_PATH
     with open(path) as f:
         return {s["id"]: s for s in json.load(f)["scenarios"]}
 
@@ -171,9 +172,9 @@ def annotate_one(claim, evidence, annotator_id, task):
     }
 
 
-def run_annotation_session(input_path, annotations_path, annotator_id, task="initial", limit=None, seed=42):
+def run_annotation_session(input_path, annotations_path, annotator_id, task="initial", limit=None, seed=42, scenarios_path=None):
     results = load_json(input_path)
-    scenarios = _load_scenarios()
+    scenarios = _load_scenarios(scenarios_path)
     existing = (
         load_annotation_file(annotations_path)
         if Path(annotations_path).exists()
@@ -411,14 +412,14 @@ def apply_annotations_to_results(results_path, annotations_path, output_path):
     print(f"Saved to {output_path}")
 
 
-def export_packet(input_path, packet_path, task="initial", seed=42):
+def export_packet(input_path, packet_path, task="initial", seed=42, scenarios_path=None):
     """Write a blinded CSV packet plus a private item key.
 
     Annotators receive only the CSV. The key maps opaque item IDs back to trial
     UIDs and must not be shown to them until both ratings are complete.
     """
     results = load_json(input_path)
-    scenarios = _load_scenarios()
+    scenarios = _load_scenarios(scenarios_path)
     rows = []
     key = {}
     for result in _blinded_order([r for r in results if not r.get("error")], seed=seed):
@@ -512,6 +513,11 @@ def main():
     parser.add_argument("--task", choices=["initial", "defended"], default="initial")
     parser.add_argument("--limit", type=int, help="Max items to annotate (testing)")
     parser.add_argument("--seed", type=int, default=42, help="Blinded ordering seed")
+    parser.add_argument(
+        "--scenario-file",
+        default=str(DEFAULT_SCENARIOS_PATH),
+        help="Scenario dataset providing the evidence dossier (v1 by default)",
+    )
     parser.add_argument("--inputs", nargs="+", help="Annotation files to merge")
     args = parser.parse_args()
 
@@ -519,7 +525,15 @@ def main():
         if not args.input or not args.annotator:
             parser.error("--input and --annotator are required for annotate mode")
         path = args.annotations or args.output or f"reports/annotations_{args.task}.json"
-        run_annotation_session(args.input, path, args.annotator, task=args.task, limit=args.limit, seed=args.seed)
+        run_annotation_session(
+            args.input,
+            path,
+            args.annotator,
+            task=args.task,
+            limit=args.limit,
+            seed=args.seed,
+            scenarios_path=args.scenario_file,
+        )
     elif args.mode == "agreement":
         path = args.annotations or args.output
         if not path:
@@ -538,7 +552,7 @@ def main():
     elif args.mode == "export":
         if not args.input or not args.output:
             parser.error("--input and --output are required for export mode")
-        export_packet(args.input, args.output, task=args.task, seed=args.seed)
+        export_packet(args.input, args.output, task=args.task, seed=args.seed, scenarios_path=args.scenario_file)
     elif args.mode == "import":
         if not args.input or not args.output or not args.annotator:
             parser.error("--input, --output, and --annotator are required for import mode")

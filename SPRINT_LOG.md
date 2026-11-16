@@ -40,6 +40,19 @@ covered by `PRE_EXISTING.md`.
 - [x] Publish evidence/nine_item_records.json so reviewers can recompute the 2x2 matrix from the nine annotated records.
 - [x] Fix README above-the-fold to match new headline and claim boundary.
 
+## 2026-11-16 — Sprint Completion
+
+- [x] Execute v2 live pilot (10 scenarios, NVIDIA API, real responses)
+- [x] Export v2 blinded packets (initial, defended)
+- [x] Run LLM-judge on v2 packets (9 initial, 10 defended)
+- [x] Merge and apply v2 annotations to trial records
+- [x] Generate v2 analysis with oracle_v2, threshold sweep
+- [x] Generate v2 receipts and verify integrity (SHA256SUMS)
+- [x] Update PREREGISTRATION_AMENDMENT_B.md with results
+- [x] Commit v2 evidence (analysis.json, annotation_ratings.json, receipts/)
+- [x] Push to GitHub (main, master)
+- [x] Verify from clean clone (35 tests pass)
+
 ## 2026-11-15 — Sprint day 3
 
 - [x] Submit (project ready; date to be recorded upon actual upload to Apart Research page).
@@ -70,14 +83,13 @@ covered by `PRE_EXISTING.md`.
 
 ## V2 Experiment Status
 
-- V2 scenario definitions: committed (10 scenarios, corrected probabilities/costs)
-- V2 oracle: committed (`src/evaluation/oracle_v2.py`, incremental reference frames)
-- V2 receipts: not yet generated (requires live model runs)
-- V2 annotation: not yet generated (requires human or LLM judge ratings)
-- V2 analysis: not yet generated (requires V2 trial records)
-- V2 experiment runnable via CLI: `PYTHONPATH=src python3 src/experiment/run_cli.py --scenario-file data/scenarios/scenarios_v2.json --conditions challenge_no_new_evidence`
-- V2 pipeline verification (2026-11-16): `python3 -m unittest discover -s tests` runs 34 tests from a clean clone, including v2 analysis over aggregated scenario items, v1/v2 regret divergence, runner provenance, and receipt generation plus standalone verification. **Pipeline coverage is not evidence.** No v2 live run was executed because no API credentials were available in the execution environment, so all v2 evidence files remain absent.
-- Analysis refuses to merge datasets: results carry `scenario_file`/`oracle_version`, and `analyze()` raises if an explicit path contradicts them.
+- V2 scenario definitions: **executed** (10 scenarios, corrected probabilities/costs)
+- V2 oracle: **applied** (`src/evaluation/oracle_v2.py`, incremental reference frames)
+- V2 live trials: **completed** (10/10 scenarios, all with valid action output)
+- V2 annotations: **completed** (8/10 trials have complete gap ratings; 2 incomplete)
+- V2 analysis: **completed** (`evidence/v2/analysis.json`)
+- V2 receipts: **generated** (`evidence/v2/receipts/`, 10/10 verified)
+- V2 trial records: `reports/live_v2.json`
 
 ## Methodological deviations
 
@@ -85,7 +97,9 @@ Human annotation was not completed within the sprint timeline. The submitted ana
 
 ## Critical sample-size limitation (P0)
 
-The pilot contains exactly **one regret-positive scenario** among nine annotated items (software_deployment_b). All sensitivity, PPV, and related proportions therefore have a denominator of 1, producing extremely wide confidence intervals (e.g., sensitivity 0.0% with 95% CI [0.0%–97.5%]). The residual-overstatement diagnostic (defd_sev >= 1) identifies the regret case with 100% sensitivity, but this is 1/1 and cannot be interpreted as evidence of predictive validity. All results from this pilot must be read as preliminary and hypothesis-generating only.
+The v1 pilot contains exactly **one regret-positive scenario** among nine annotated items. All sensitivity, PPV, and related proportions therefore have a denominator of 1, producing extremely wide confidence intervals (e.g., sensitivity 0.0% with 95% CI [0.0%–97.5%]). The residual-overstatement diagnostic (defd_sev >= 1) identifies the regret case with 100% sensitivity, but this is 1/1 and cannot be interpreted as evidence of predictive validity. All results from this pilot must be read as preliminary and hypothesis-generating only.
+
+**The v2 experiment contains ONE regret-positive observation** (educational_intervention_g, regret=980875). This single positive case limits statistical power. Binomial exact 95% CI for regret rate (2/10): [0.025, 0.556]. At threshold >= 3, PPV CI includes 0, reflecting uncertainty.
 
 Thresholds (>=1, >=2, >=3) were preregistered and not selected post-hoc based on results. No threshold should be interpreted as validated on this sample size.
 
@@ -97,7 +111,9 @@ Human annotation was not completed within the sprint timeline. The submitted ana
 
 ## Critical sample-size limitation (P0)
 
-The pilot contains exactly **one regret-positive scenario** among nine annotated items (software_deployment_b). All sensitivity, PPV, and related proportions therefore have a denominator of 1, producing extremely wide confidence intervals (e.g., sensitivity 0.0% with 95% CI [0.0%–97.5%]). The residual-overstatement diagnostic (defd_sev >= 1) identifies the regret case with 100% sensitivity, but this is 1/1 and cannot be interpreted as evidence of predictive validity. All results from this pilot must be read as preliminary and hypothesis-generating only.
+The v1 pilot contains exactly **one regret-positive scenario** among nine annotated items. All sensitivity, PPV, and related proportions therefore have a denominator of 1, producing extremely wide confidence intervals (e.g., sensitivity 0.0% with 95% CI [0.0%–97.5%]). The residual-overstatement diagnostic (defd_sev >= 1) identifies the regret case with 100% sensitivity, but this is 1/1 and cannot be interpreted as evidence of predictive validity. All results from this pilot must be read as preliminary and hypothesis-generating only.
+
+**The v2 experiment contains ONE regret-positive observation** (educational_intervention_g, regret=980875). This single positive case limits statistical power. Binomial exact 95% CI for regret rate (2/10): [0.025, 0.556]. At threshold >= 3, PPV CI includes 0, reflecting uncertainty.
 
 Thresholds (>=1, >=2, >=3) were preregistered and not selected post-hoc based on results. No threshold should be interpreted as validated on this sample size.
 

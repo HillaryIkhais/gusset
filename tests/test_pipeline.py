@@ -1,3 +1,4 @@
+import csv
 import json
 import sys
 import tempfile
@@ -6,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from analysis.analyze import aggregate_by_scenario, analyze, diagnostic_matrix
-from annotation.annotate import _quadratic_weighted_kappa, merge_annotation_files
+from annotation.annotate import _load_scenarios, _quadratic_weighted_kappa, export_packet, merge_annotation_files
 from evaluation import oracle as oracle_v1
 from evaluation import oracle_v2
 from evaluation.metrics import (
@@ -723,6 +724,37 @@ class V2PipelineTests(unittest.TestCase):
 
 
 class AnnotationTests(unittest.TestCase):
+    @staticmethod
+    def _keep_current_mock(model_name, prompt):
+        return "ACTION: keep_current_defenses\nCLAIM: The evidence is weak.\nCONFIDENCE: 0.7"
+
+    def test_export_packet_uses_selected_scenario_dataset(self):
+        runner = WarrantRunner(self._keep_current_mock, scenarios_path=V2_SCENARIOS_PATH)
+        runner.run(
+            ["mock-model"],
+            scenario_ids=["cybersecurity_investment_j"],
+            conditions=["challenge_no_new_evidence"],
+            n_runs=1,
+            run_intervention=False,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            results_path = tmp / "results_v2.json"
+            runner.save(results_path)
+            packet_path = tmp / "packet_v2.csv"
+            export_packet(results_path, packet_path, task="initial", scenarios_path=V2_SCENARIOS_PATH)
+            rows = list(csv.DictReader(packet_path.open()))
+            self.assertEqual(len(rows), 1)
+            v2 = _load_scenarios(V2_SCENARIOS_PATH)["software_deployment_b"]
+            v1 = self._v1_scenario("software_deployment_b")
+            self.assertNotEqual(v2["probabilities"], v1["probabilities"])
+            self.assertIn(_load_scenarios(V2_SCENARIOS_PATH)["cybersecurity_investment_j"]["evidence_dossier"][0], rows[0]["evidence"])
+
+    @staticmethod
+    def _v1_scenario(scenario_id):
+        path = Path(__file__).resolve().parents[1] / "data" / "scenarios" / "scenarios.json"
+        return scenario_map(path)[scenario_id]
+
     def test_weighted_kappa(self):
         self.assertAlmostEqual(_quadratic_weighted_kappa([0, 1, 2, 3], [0, 1, 2, 3]), 1.0)
         self.assertLess(_quadratic_weighted_kappa([0, 1, 2, 3], [3, 2, 1, 0]), 0.1)

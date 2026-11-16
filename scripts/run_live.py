@@ -41,6 +41,11 @@ def main():
     parser.add_argument("--max-tokens", type=int, default=2048)
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--no-intervention", action="store_true")
+    parser.add_argument(
+        "--scenario-file",
+        default=str(ROOT / "data" / "scenarios" / "scenarios.json"),
+        help="Scenario dataset to run (use data/scenarios/scenarios_v2.json for v2)",
+    )
     parser.add_argument("--output", default="reports/live_challenge.json")
     args = parser.parse_args()
 
@@ -49,7 +54,7 @@ def main():
     os.environ.setdefault("NVIDIA_TIMEOUT", str(args.timeout))
 
     client = NVIDIAClient()
-    runner = WarrantRunner(lambda model, prompt: client(model, prompt))
+    runner = WarrantRunner(lambda model, prompt: client(model, prompt), scenarios_path=args.scenario_file)
     conditions = "all" if args.conditions == ["all"] else args.conditions
     results = runner.run(
         [args.model],

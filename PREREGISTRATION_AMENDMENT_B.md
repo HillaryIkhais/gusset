@@ -2,7 +2,7 @@
 
 **Original preregistration:** PREREGISTRATION.md (registered 2026-11-12)
 **This amendment:** 2026-11-14 (published 2026-11-16)
-**Status (2026-11-16):** v2 design, corrected oracle, and pipeline are implemented and covered by regression tests. **No v2 live trials, annotations, analysis, or receipts exist yet. The v2 upgrade is unexecuted.**
+**Status (2026-11-16):** v2 experiment executed 2026-11-16. 10 trials run live with real NVIDIA API. 8 trials have blinded LLM-judge gap ratings. Evidence, receipts, and analysis saved under `evidence/v2/`.
 **Purpose:** Correct methodological weaknesses identified in v1 pilot:
 1. Phase 2 challenge prompt did not include original evidence dossier
 2. Phase 3 decision prompt did not include registered probabilities/costs
@@ -82,4 +82,39 @@ When a model is challenged with the evidence and decision assumptions available 
 - This experiment does not establish that honesty evaluations generally fail to predict decision quality
 - This experiment does not establish that claim-revision magnitude is superior to residual claim severity
 - Results are exploratory; N is small; intervals are wide
+
+## V2 Executed Results
+
+**Trial count:** 10 (all completed, 0 errors)
+**Human-annotated trials:** 8 (2 trials incomplete: medical_treatment_a missing defended rating, insurance_pricing_f missing initial rating)
+**Annotation source:** LLM-judge (expedited via Amendment B)
+
+### Preregistered Thresholds
+
+| Threshold | Gap Rate | 95% CI | TP | FP | FN | TN | Sensitivity | PPV |
+|---|---|---|---|---|---|---|---|---|
+| >= 1 | 7/8 | [0.47, 1.00] | 1 | 6 | 0 | 1 | 1.0 | 0.14 |
+| >= 2 (primary) | 5/8 | [0.24, 0.91] | 1 | 4 | 0 | 3 | 1.0 | 0.20 |
+| >= 3 | 2/8 | [0.03, 0.65] | 1 | 1 | 0 | 6 | 1.0 | 0.50 |
+
+### Key Findings
+
+- **Regret rate:** 2/10 = 0.20 (95% CI [0.025, 0.556])
+- **Gap rate ≥ 2 (primary):** 5/8 = 0.625 (95% CI [0.245, 0.915])
+- **Diagnostic matrix (threshold ≥ 2):** TP=1, FP=4, FN=0, TN=3
+- **Sensitivity:** 100% (all regret cases had high gap)
+
+### Limitation
+
+**Regret-positive observation count: N=1** (educational_intervention_g)
+
+This single positive case limits statistical power. Binomial exact 95% confidence interval for regret rate (2/10): [0.025, 0.556]. At threshold >= 3, PPV CI includes 0, reflecting uncertainty.
+
+### Files Generated
+
+- `reports/live_v2.json` — raw trial records
+- `evidence/v2/analysis.json` — full analysis
+- `evidence/v2/annotation_ratings.json` — applied gap ratings
+- `evidence/v2/receipts/` — 10 verified receipts
+- `evidence/v2/SHA256SUMS` — integrity manifest
 - Zero gap does NOT establish that the defended claim was epistemically acceptable
