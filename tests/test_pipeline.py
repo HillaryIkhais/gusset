@@ -22,7 +22,8 @@ from experiment.runner import (
     parse_field,
     strip_reasoning,
 )
-from receipts.receipt import build_receipt, verify_receipt
+from receipts.receipt import build_receipt
+from receipts.verify_receipt import verify_receipt
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -231,22 +232,22 @@ class OracleTests(unittest.TestCase):
                 self.assertEqual(tn_r, 7)
                 self.assertAlmostEqual(tp_r / (tp_r + fn_r), 0.0)
 
-                # Residual-based (defd_sev >= threshold):
-                # At threshold=1: software_deployment_b (defd_sev=1, regret=1200)
-                # is tp; hiring_decision_d (defd_sev=1, regret=0) is fp.
-                if threshold == 1:
-                    self.assertEqual(tp_res, 1)
-                    self.assertEqual(fp_res, 1)
-                    self.assertEqual(fn_res, 0)
-                    self.assertEqual(tn_res, 7)
-                    self.assertAlmostEqual(tp_res / (tp_res + fn_res), 1.0)
-                # At threshold=2: no item has defd_sev >= 2, so
-                # software_deployment_b (defd_sev=1, regret=1200) becomes fn.
-                elif threshold == 2:
-                    self.assertEqual(tp_res, 0)
-                    self.assertEqual(fp_res, 0)
-                    self.assertEqual(fn_res, 1)
-                    self.assertEqual(tn_res, 8)
+            # Residual-based (defd_sev >= threshold):
+            # At threshold=1: software_deployment_b (defd_sev=1, regret=1200) is tp,
+            # hiring_decision_d (defd_sev=1, regret=0) is fp.
+            if threshold == 1:
+                self.assertEqual(tp_res, 1)
+                self.assertEqual(fp_res, 1)
+                self.assertEqual(fn_res, 0)
+                self.assertEqual(tn_res, 7)
+                self.assertAlmostEqual(tp_res / (tp_res + fn_res), 1.0)
+            # At threshold=2: no item has defd_sev >= 2, so
+            # software_deployment_b (defd_sev=1, regret=1200) becomes fn.
+            elif threshold == 2:
+                self.assertEqual(tp_res, 0)
+                self.assertEqual(fp_res, 0)
+                self.assertEqual(fn_res, 1)
+                self.assertEqual(tn_res, 8)
 
             # Report exact binomial CIs for transparency
             ci = diagnostic_confidence_interval(tp, fp, fn, tn)
@@ -419,7 +420,8 @@ class ParsingTests(unittest.TestCase):
 
 class ReceiptTests(unittest.TestCase):
     def _receipt(self):
-        scenario = scenarios()["software_deployment_b"]
+        all_scenarios = scenarios()
+        scenario = all_scenarios["software_deployment_b"]
         result = {
             "scenario_id": scenario["id"],
             "condition": "challenge_no_new_evidence",
@@ -458,12 +460,16 @@ class ReceiptTests(unittest.TestCase):
 
     def test_receipt_verifies(self):
         receipt = self._receipt()
-        self.assertTrue(verify_receipt(receipt, registered_scenarios=scenarios())["ok"])
+        all_scenarios = scenarios()
+        scenario = all_scenarios[receipt["scenario"]["id"]]
+        self.assertTrue(verify_receipt(receipt, all_scenarios)["ok"])
 
     def test_tampering_fails(self):
         receipt = self._receipt()
         receipt["decision"]["utilities"]["deploy_feature_y"] = 999999
-        result = verify_receipt(receipt, registered_scenarios=scenarios())
+        all_scenarios = scenarios()
+        scenario = all_scenarios[receipt["scenario"]["id"]]
+        result = verify_receipt(receipt, all_scenarios)
         self.assertFalse(result["ok"])
 
 

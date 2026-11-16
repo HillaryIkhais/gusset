@@ -89,13 +89,14 @@ def proportion_ci(successes, total, ci=0.95):
     return (lower, upper)
 
 
-def _is_valid_action(result, oracle_module):
+def _is_valid_action(result, scenarios, oracle_module):
     action = result.get("final_recommendation")
+    scenario = next((s for s in scenarios if s["id"] == result.get("scenario_id")), None)
+    if scenario is None:
+        return regret_value(result, oracle_module) is not None
     oracle = oracle_module.compute_optimal_action(
-        oracle_module.scenario_for_condition(
-            result, result.get("condition") or "challenge_no_new_evidence"
-        )
-    ) if "scenario_id" in result else None
+        oracle_module.scenario_for_condition(scenario, result.get("condition") or "challenge_no_new_evidence")
+    )
     if oracle is None:
         return regret_value(result, oracle_module) is not None
     return action in oracle["all_utilities"]
@@ -217,9 +218,9 @@ def _cluster_bootstrap(results, metric_fn, n_boot=5000, seed=42):
     return (lower, upper)
 
 
-def _diagnostic_metric(name):
+def _diagnostic_metric(name, oracle_module):
     def compute(results):
-        matrix = diagnostic_matrix(results)
+        matrix = diagnostic_matrix(results, oracle_module)
         return matrix.get(name)
     return compute
 
@@ -249,7 +250,7 @@ def analyze(results, oracle_module=oracle_v1, scenarios_path=None, bootstrap_n=5
     raw_n = len(results)
     errors = [r for r in results if isinstance(r, dict) and r.get("error")]
     valid = [r for r in results if not (isinstance(r, dict) and r.get("error"))]
-    valid_actions = [r for r in valid if _is_valid_action(r, oracle_module)]
+    valid_actions = [r for r in valid if _is_valid_action(r, scenarios, oracle_module)]
     annotated = [
         r for r in valid_actions
         if gap_severity(r, oracle_module) is not None and r.get("human_annotation_source", "human") != "synthetic"

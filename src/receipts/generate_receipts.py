@@ -3,6 +3,12 @@
 Usage:
     PYTHONPATH=src python src/receipts/generate_receipts.py \
         --input reports/live.json --output-dir reports/receipts
+
+    To use v2 scenarios:
+    PYTHONPATH=src python src/receipts/generate_receipts.py \
+        --input reports/live_v2.json \
+        --scenario-file data/scenarios/scenarios_v2.json \
+        --output-dir reports/receipts_v2
 """
 
 import argparse
@@ -10,13 +16,17 @@ import json
 import re
 from pathlib import Path
 
+from evaluation import oracle as oracle_v1
+from evaluation import oracle_v2 as oracle_v2
 from receipts.receipt import build_receipt, verify_receipt
 
 
-def load_scenarios():
-    path = Path(__file__).resolve().parents[2] / "data" / "scenarios" / "scenarios.json"
-    with open(path) as f:
-        return {s["id"]: s for s in json.load(f)["scenarios"]}
+DEFAULT_SCENARIOS_PATH = Path(__file__).resolve().parents[2] / "data" / "scenarios" / "scenarios.json"
+
+
+def load_scenarios(scenarios_path=DEFAULT_SCENARIOS_PATH):
+    with open(scenarios_path) as f:
+        return json.load(f)["scenarios"]
 
 
 def safe_name(trial_uid):
@@ -26,12 +36,18 @@ def safe_name(trial_uid):
 def main():
     parser = argparse.ArgumentParser(description="Generate GUSSET Decision Receipts")
     parser.add_argument("--input", required=True, help="Trial results JSON")
+    parser.add_argument("--scenario-file", default=None, help="Path to scenario JSON file")
     parser.add_argument("--output-dir", default="reports/receipts")
     parser.add_argument("--index", default=None, help="Receipt index JSON path")
     args = parser.parse_args()
 
     results = json.load(open(args.input))
-    scenarios = load_scenarios()
+    scenarios = load_scenarios(args.scenario_file)
+    if args.scenario_file and args.scenario_file.endswith("scenarios_v2.json"):
+        oracle_module = oracle_v2
+    else:
+        oracle_module = oracle_v1
+
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -39,12 +55,13 @@ def main():
     for result in results:
         if result.get("error"):
             continue
-        scenario = scenarios.get(result.get("scenario_id"))
+        scenario_id = result.get("scenario_id")
+        scenario = next((s for s in scenarios if s["id"] == scenario_id), None)
         if scenario is None:
-            print(f"SKIP {result.get('trial_uid')}: unknown scenario")
+            print(f"SKIP {result.get('trial_uid')}: unknown scenario {scenario_id}")
             continue
-        receipt = build_receipt(result, scenario)
-        verification = verify_receipt(receipt, registered_scenarios=scenarios)
+        receipt = build_receipt(result, scenario, oracle_module)
+        verification = verify_receipt(receipt)
         if not verification["ok"]:
             print(f"WARNING {result.get('trial_uid')}: receipt failed self-verification")
             for reason in verification["reasons"]:
@@ -73,6 +90,7 @@ def main():
             {
                 "receipt_version": "gusset-receipt-index-1.0",
                 "source_results": args.input,
+                "scenario_file": args.scenario_file,
                 "n_receipts": len(index),
                 "receipts": index,
             },
