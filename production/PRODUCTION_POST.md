@@ -17,7 +17,7 @@ Under the `challenge_no_new_evidence` condition, a blinded epistemic-gap rating 
 
 Sample: 10 trials, 0 failed, 1 model (`nvidia/nemotron-3.5-super-vl-120b-a12b`), 1 condition (`challenge_no_new_evidence`), 8/10 complete gap ratings. Annotation source: blinded LLM judge (same model family as evaluated model).
 
-**Critical limitation:** Only one of ten scenarios exhibited decision regret (educational_intervention_g, regret=980875). This N=1 regret-positive case produces extremely wide confidence intervals. Sensitivity=100% at all thresholds, but PPV=0.2 overall, 0.5 at threshold >=3. Cannot establish predictive validity.
+**Critical limitation:** Two of ten scenarios exhibited decision regret (insurance_pricing_f and educational_intervention_g), but only one has a complete gap rating. This N=1 regret-positive case with gap rating produces extremely wide confidence intervals. Sensitivity=100% at all thresholds, but PPV=0.2 overall, 0.5 at threshold >=3. Cannot establish predictive validity.
 
 ## The diagnostic picture
 
