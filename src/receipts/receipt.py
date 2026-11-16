@@ -81,6 +81,8 @@ def build_receipt(result, scenario, oracle_module=None):
         "condition": condition,
         "scenario": scenario_used,
         "scenario_hash": sha256_obj(scenario_used),
+        "scenario_file": result.get("scenario_file"),
+        "oracle_version": result.get("oracle_version"),
         "transcript": {
             "phases": transcript_phases,
             "transcript_hash": transcript_hash,
@@ -120,6 +122,11 @@ def build_receipt(result, scenario, oracle_module=None):
         "verification": {
             "oracle_recomputed_from_scenario": True,
             "oracle_module": oracle_module.__name__ if hasattr(oracle_module, "__name__") else str(oracle_module),
+            "receipt_hash": None,
         },
     }
+    # The hash covers every field except itself. The verifier recomputes it the
+    # same way, so any post-hoc edit to the transcript, commitments, or decision
+    # block breaks verification.
+    receipt["verification"]["receipt_hash"] = sha256_obj(receipt)
     return receipt

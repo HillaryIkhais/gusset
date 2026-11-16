@@ -1,9 +1,14 @@
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from analysis.analyze import aggregate_by_scenario, analyze, diagnostic_matrix
 from annotation.annotate import _quadratic_weighted_kappa, merge_annotation_files
+from evaluation import oracle as oracle_v1
+from evaluation import oracle_v2
 from evaluation.metrics import (
     binom_conf_interval,
     diagnostic_cell,
@@ -22,16 +27,28 @@ from experiment.runner import (
     parse_field,
     strip_reasoning,
 )
+from receipts import generate_receipts
 from receipts.receipt import build_receipt
 from receipts.verify_receipt import verify_receipt
 
 
 ROOT = Path(__file__).resolve().parents[1]
+V1_SCENARIOS_PATH = ROOT / "data" / "scenarios" / "scenarios.json"
+V2_SCENARIOS_PATH = ROOT / "data" / "scenarios" / "scenarios_v2.json"
 
 
 def scenarios():
     with open(ROOT / "data" / "scenarios" / "scenarios.json") as f:
         return {s["id"]: s for s in json.load(f)["scenarios"]}
+
+
+def scenario_list(path):
+    with open(path) as f:
+        return json.load(f)["scenarios"]
+
+
+def scenario_map(path):
+    return {s["id"]: s for s in scenario_list(path)}
 
 
 def mock_model(model_name, prompt):
@@ -471,6 +488,238 @@ class ReceiptTests(unittest.TestCase):
         scenario = all_scenarios[receipt["scenario"]["id"]]
         result = verify_receipt(receipt, all_scenarios)
         self.assertFalse(result["ok"])
+
+
+class AnalysisPipelineTests(unittest.TestCase):
+    """Regression coverage for the analysis path that previously had none."""
+
+    def _v2_rows(self):
+        """Four v2 trial-shaped rows, one per diagnostic cell."""
+        common = {
+            "condition": "challenge_no_new_evidence",
+            "model_name": "mock-model",
+            "provider": "mock",
+            "scenario_file": str(V2_SCENARIOS_PATH.resolve()),
+            "oracle_version": "evaluation.oracle_v2",
+            "human_annotation_source": "human",
+            "human_n_annotators": 1,
+        }
+        return [
+            {  # gap present, regret present -> true positive
+                **common,
+                "scenario_id": "cybersecurity_investment_j",
+                "final_recommendation": "purchase_tool_k",
+                "human_initial_overstatement": 3.0,
+                "human_defended_overstatement": 0.5,
+                "human_gap_severity": 2.5,
+            },
+            {  # gap present, no regret -> false alarm
+                **common,
+                "scenario_id": "insurance_pricing_f",
+                "final_recommendation": "maintain_premiums",
+                "human_initial_overstatement": 3.0,
+                "human_defended_overstatement": 0.0,
+                "human_gap_severity": 3.0,
+            },
+            {  # no gap, regret present -> false reassurance
+                **common,
+                "scenario_id": "software_deployment_b",
+                "final_recommendation": "deploy_feature_y",
+                "human_initial_overstatement": 1.0,
+                "human_defended_overstatement": 1.0,
+                "human_gap_severity": 0.5,
+            },
+            {  # no gap, no regret -> true negative
+                **common,
+                "scenario_id": "medical_treatment_a",
+                "final_recommendation": "standard_care",
+                "human_initial_overstatement": 0.0,
+                "human_defended_overstatement": 0.0,
+                "human_gap_severity": 0.0,
+            },
+        ]
+
+    def test_aggregated_matrix_honors_precomputed_regret_label(self):
+        """Aggregated items have no final_recommendation; the matrix must still count them."""
+        items = [
+            {
+                "scenario_id": "s_tp",
+                "condition": "challenge_no_new_evidence",
+                "human_gap_severity": 2.5,
+                "regret_binary_value": True,
+                "n_trials": 1,
+            },
+            {
+                "scenario_id": "s_fa",
+                "condition": "challenge_no_new_evidence",
+                "human_gap_severity": 3.0,
+                "regret_binary_value": False,
+                "n_trials": 1,
+            },
+            {
+                "scenario_id": "s_fr",
+                "condition": "challenge_no_new_evidence",
+                "human_gap_severity": 0.0,
+                "regret_binary_value": True,
+                "n_trials": 1,
+            },
+            {
+                "scenario_id": "s_tn",
+                "condition": "challenge_no_new_evidence",
+                "human_gap_severity": 1.0,
+                "regret_binary_value": False,
+                "n_trials": 1,
+            },
+        ]
+        matrix = diagnostic_matrix(items)
+        self.assertEqual(matrix["n"], 4)
+        self.assertEqual(
+            matrix["counts"],
+            {
+                "true_positive": 1,
+                "false_alarm": 1,
+                "false_reassurance": 1,
+                "true_negative": 1,
+            },
+        )
+        self.assertEqual(matrix["sensitivity"], 0.5)
+        self.assertEqual(matrix["specificity"], 0.5)
+        self.assertEqual(matrix["accuracy"], 0.5)
+
+    def test_aggregate_by_scenario_emits_usable_items(self):
+        rows = self._v2_rows()
+        items = aggregate_by_scenario(rows, oracle_v2, scenarios_path=V2_SCENARIOS_PATH)
+        self.assertEqual(len(items), 4)
+        by_id = {item["scenario_id"]: item for item in items}
+        self.assertTrue(by_id["cybersecurity_investment_j"]["regret_binary_value"])
+        self.assertFalse(by_id["insurance_pricing_f"]["regret_binary_value"])
+        self.assertNotIn("final_recommendation", by_id["cybersecurity_investment_j"])
+
+    def test_analyze_v2_recomputes_matrix_without_explicit_path(self):
+        """analyze() must derive the v2 dataset from the results themselves."""
+        rows = self._v2_rows()
+        result = analyze(rows, oracle_module=oracle_v2, bootstrap_n=200, seed=7)
+
+        self.assertEqual(result["scenario_file"], str(V2_SCENARIOS_PATH.resolve()))
+        self.assertIn("oracle_v2", result["oracle_module"])
+        matrix = result["diagnostic_matrix"]
+        self.assertEqual(matrix["n"], 4)
+        self.assertEqual(
+            matrix["counts"],
+            {
+                "true_positive": 1,
+                "false_alarm": 1,
+                "false_reassurance": 1,
+                "true_negative": 1,
+            },
+        )
+        self.assertEqual(matrix["n_trials_aggregated"], 4)
+        self.assertEqual(result["overall"]["valid_action_trials"], 4)
+        self.assertEqual(result["overall"]["primary_scenario_items"], 4)
+        self.assertEqual(result["by_scenario"]["cybersecurity_investment_j"]["regret_rate"], 1.0)
+
+    def test_analyze_rejects_mixed_datasets(self):
+        rows = self._v2_rows()
+        rows.append(
+            {
+                "scenario_id": "medical_treatment_a",
+                "condition": "challenge_no_new_evidence",
+                "scenario_file": str(V1_SCENARIOS_PATH.resolve()),
+                "final_recommendation": "standard_care",
+                "human_gap_severity": 0.0,
+            }
+        )
+        with self.assertRaises(ValueError):
+            analyze(rows, oracle_module=oracle_v2, bootstrap_n=10)
+
+    def test_regret_uses_selected_scenario_dataset(self):
+        """The same action has different regret under v1 and v2 parameters."""
+        result = {
+            "scenario_id": "cybersecurity_investment_j",
+            "condition": "challenge_no_new_evidence",
+            "final_recommendation": "purchase_tool_k",
+        }
+        self.assertAlmostEqual(
+            regret_value(result, oracle_v1, scenarios_path=V1_SCENARIOS_PATH), 68800.0
+        )
+        self.assertAlmostEqual(
+            regret_value(result, oracle_v2, scenarios_path=V2_SCENARIOS_PATH), 164000.0
+        )
+        # A record carrying provenance is scored against that dataset even when
+        # the caller does not repeat the path.
+        tagged = {**result, "scenario_file": str(V2_SCENARIOS_PATH.resolve())}
+        self.assertAlmostEqual(regret_value(tagged, oracle_v2), 164000.0)
+
+
+class V2PipelineTests(unittest.TestCase):
+    """End-to-end v2 runner, analysis, and receipt generation."""
+
+    @staticmethod
+    def _keep_current_mock(model_name, prompt):
+        return "ACTION: keep_current_defenses\nCLAIM: The evidence is weak.\nCONFIDENCE: 0.7"
+
+    def test_runner_selects_v2_oracle_and_records_provenance(self):
+        runner = WarrantRunner(self._keep_current_mock, scenarios_path=V2_SCENARIOS_PATH)
+        self.assertIs(runner.oracle_module, oracle_v2)
+        results = runner.run(
+            ["mock-model"],
+            scenario_ids=["cybersecurity_investment_j"],
+            conditions=["challenge_no_new_evidence"],
+            n_runs=1,
+            run_intervention=False,
+        )
+        self.assertEqual(len(results), 1)
+        record = results[0]
+        self.assertEqual(record.scenario_file, str(V2_SCENARIOS_PATH.resolve()))
+        self.assertEqual(record.oracle_version, "evaluation.oracle_v2")
+        self.assertEqual(record.optimal_action, "keep_current_defenses")
+        self.assertEqual(record.final_recommendation, "keep_current_defenses")
+        self.assertEqual(record.regret, 0.0)
+
+    def test_receipt_generator_handles_v2_dataset(self):
+        runner = WarrantRunner(self._keep_current_mock, scenarios_path=V2_SCENARIOS_PATH)
+        runner.run(
+            ["mock-model"],
+            scenario_ids=["cybersecurity_investment_j"],
+            conditions=["challenge_no_new_evidence"],
+            n_runs=1,
+            run_intervention=False,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            results_path = Path(tmp) / "results_v2.json"
+            runner.save(results_path)
+            output_dir = Path(tmp) / "receipts_v2"
+            argv = [
+                "generate_receipts.py",
+                "--input",
+                str(results_path),
+                "--scenario-file",
+                str(V2_SCENARIOS_PATH),
+                "--output-dir",
+                str(output_dir),
+            ]
+            with patch.object(sys, "argv", argv):
+                generate_receipts.main()
+
+            index = json.loads((output_dir / "index.json").read_text())
+            self.assertEqual(index["n_receipts"], 1)
+            self.assertTrue(index["receipts"][0]["self_verified"])
+
+            receipt = json.loads(Path(index["receipts"][0]["path"]).read_text())
+            self.assertEqual(receipt["scenario_file"], str(V2_SCENARIOS_PATH.resolve()))
+            self.assertEqual(receipt["oracle_version"], "evaluation.oracle_v2")
+            self.assertEqual(len(receipt["verification"]["receipt_hash"]), 64)
+
+            v2 = scenario_map(V2_SCENARIOS_PATH)
+            self.assertTrue(
+                verify_receipt(receipt, v2, str(V2_SCENARIOS_PATH), oracle_v2)["ok"]
+            )
+
+            # Editing the stored regret must break verification.
+            receipt["decision"]["regret"] = 123456.0
+            self.assertFalse(
+                verify_receipt(receipt, v2, str(V2_SCENARIOS_PATH), oracle_v2)["ok"]
+            )
 
 
 class AnnotationTests(unittest.TestCase):

@@ -18,7 +18,8 @@ from pathlib import Path
 
 from evaluation import oracle as oracle_v1
 from evaluation import oracle_v2 as oracle_v2
-from receipts.receipt import build_receipt, verify_receipt
+from receipts.receipt import build_receipt
+from receipts.verify_receipt import verify_receipt
 
 
 DEFAULT_SCENARIOS_PATH = Path(__file__).resolve().parents[2] / "data" / "scenarios" / "scenarios.json"
@@ -27,6 +28,13 @@ DEFAULT_SCENARIOS_PATH = Path(__file__).resolve().parents[2] / "data" / "scenari
 def load_scenarios(scenarios_path=DEFAULT_SCENARIOS_PATH):
     with open(scenarios_path) as f:
         return json.load(f)["scenarios"]
+
+
+def oracle_for_scenarios(scenarios_path):
+    """v2 datasets are scored with the v2 oracle; everything else uses v1."""
+    if scenarios_path and Path(scenarios_path).name == "scenarios_v2.json":
+        return oracle_v2
+    return oracle_v1
 
 
 def safe_name(trial_uid):
@@ -42,11 +50,9 @@ def main():
     args = parser.parse_args()
 
     results = json.load(open(args.input))
-    scenarios = load_scenarios(args.scenario_file)
-    if args.scenario_file and args.scenario_file.endswith("scenarios_v2.json"):
-        oracle_module = oracle_v2
-    else:
-        oracle_module = oracle_v1
+    scenarios_path = args.scenario_file or DEFAULT_SCENARIOS_PATH
+    scenarios = load_scenarios(scenarios_path)
+    oracle_module = oracle_for_scenarios(scenarios_path)
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -61,7 +67,12 @@ def main():
             print(f"SKIP {result.get('trial_uid')}: unknown scenario {scenario_id}")
             continue
         receipt = build_receipt(result, scenario, oracle_module)
-        verification = verify_receipt(receipt)
+        verification = verify_receipt(
+            receipt,
+            scenarios=scenarios,
+            scenarios_path=scenarios_path,
+            oracle_module=oracle_module,
+        )
         if not verification["ok"]:
             print(f"WARNING {result.get('trial_uid')}: receipt failed self-verification")
             for reason in verification["reasons"]:

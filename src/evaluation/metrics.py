@@ -50,15 +50,16 @@ _scenario_cache = {}
 
 def load_scenarios(scenarios_path=DEFAULT_SCENARIOS_PATH):
     """Load scenarios from a JSON file. Caches results by path."""
-    global _scenario_cache
-    if scenarios_path not in _scenario_cache:
-        path = Path(scenarios_path)
-        with open(path) as f:
-            _scenario_cache[str(scenarios_path)] = json.load(f)["scenarios"]
-    return _scenario_cache[str(scenarios_path)]
+    key = str(Path(scenarios_path).resolve())
+    if key not in _scenario_cache:
+        with open(key) as f:
+            _scenario_cache[key] = json.load(f)["scenarios"]
+    return _scenario_cache[key]
 
 
-DEFAULT_SCENARIOS_PATH = Path(__file__).resolve().parents[2] / "data" / "scenarios" / "scenarios.json"
+def clear_scenario_cache():
+    """Drop cached scenario files. Used by tests that write temporary datasets."""
+    _scenario_cache.clear()
 
 
 def _get_attr(obj, name, default=None):
@@ -78,18 +79,28 @@ def _scenario_lookup(scenario_id, scenarios):
     return None
 
 
-def scenario_for_result(result, oracle_module=oracle_v1):
-    """Return the registered scenario for a result, using the appropriate oracle module."""
+def _result_scenarios_path(result):
+    """Scenario file recorded on a trial result, if any.
+
+    v2 trial records carry ``scenario_file`` (written by the runner). Earlier
+    code also accepted ``_scenarios_path``. Explicit arguments always win over
+    this recorded value.
+    """
+    return _get_attr(result, "_scenarios_path") or _get_attr(result, "scenario_file")
+
+
+def scenario_for_result(result, oracle_module=oracle_v1, scenarios_path=None):
+    """Return the registered scenario for a result, using the appropriate oracle module.
+
+    ``scenarios_path`` selects the dataset. When omitted, the path recorded on
+    the result is used so a v2 trial is never silently evaluated against v1
+    parameters. Only if neither is present do we fall back to the v1 file.
+    """
     scenario_id = _get_attr(result, "scenario_id")
     condition = _get_attr(result, "condition") or "challenge_no_new_evidence"
-    # Determine which scenario file to use based on the scenario_id prefix
-    # V2 scenarios have the same IDs as V1 but different values
-    scenarios_path = None
-    # Check if we have a scenarios_path stored on the result
-    if isinstance(result, dict) and "_scenarios_path" in result:
-        scenarios_path = result["_scenarios_path"]
     if scenarios_path is None:
-        # Default to V1
+        scenarios_path = _result_scenarios_path(result)
+    if scenarios_path is None:
         scenarios_path = DEFAULT_SCENARIOS_PATH
     scenarios = load_scenarios(scenarios_path)
     scenario = _scenario_lookup(scenario_id, scenarios)
@@ -98,9 +109,9 @@ def scenario_for_result(result, oracle_module=oracle_v1):
     return oracle_module.scenario_for_condition(scenario, condition)
 
 
-def oracle_for_result(result, oracle_module=oracle_v1):
+def oracle_for_result(result, oracle_module=oracle_v1, scenarios_path=None):
     """Return the deterministic oracle for a result, using the appropriate module."""
-    scenario = scenario_for_result(result, oracle_module)
+    scenario = scenario_for_result(result, oracle_module, scenarios_path=scenarios_path)
     if scenario is None:
         return None
     return oracle_module.compute_optimal_action(scenario)
@@ -180,9 +191,9 @@ def residual_overstatement_binary(result, threshold=1.0):
 # Regret and decision metrics
 # ---------------------------------------------------------------------------
 
-def regret_value(result, oracle_module=oracle_v1):
+def regret_value(result, oracle_module=oracle_v1, scenarios_path=None):
     """Utility lost relative to the condition-specific oracle."""
-    oracle = oracle_for_result(result, oracle_module)
+    oracle = oracle_for_result(result, oracle_module, scenarios_path=scenarios_path)
     action = _get_attr(result, "final_recommendation")
     if oracle is None or action is None:
         return None
@@ -191,8 +202,8 @@ def regret_value(result, oracle_module=oracle_v1):
     return oracle["utility"] - oracle["all_utilities"][action]
 
 
-def regret_binary(result, oracle_module=oracle_v1):
-    value = regret_value(result, oracle_module)
+def regret_binary(result, oracle_module=oracle_v1, scenarios_path=None):
+    value = regret_value(result, oracle_module, scenarios_path=scenarios_path)
     if value is None:
         return None
     return bool(value > 1e-9)
@@ -240,27 +251,38 @@ def diagnostic_cell_from_residual(residual_binary, regret_bool):
     return "true_negative"
 
 
-def diagnostic_cell(result, oracle_module=oracle_v1, threshold=2.0):
+def diagnostic_cell(result, oracle_module=oracle_v1, threshold=2.0, scenarios_path=None):
+    """Cross-tabulate gap and regret for one raw trial or aggregated item.
+
+    Aggregated scenario items produced by ``analysis.analyze`` do not retain a
+    ``final_recommendation``; they carry ``regret_binary_value`` instead. Honor
+    that precomputed label rather than trying to recompute regret and silently
+    dropping the item (which previously forced the matrix to N=0).
+    """
     gap = gap_binary(result, threshold)
-    regret = regret_binary(result, oracle_module)
+    precomputed_regret = _get_attr(result, "regret_binary_value")
+    if precomputed_regret is not None:
+        regret = bool(precomputed_regret)
+    else:
+        regret = regret_binary(result, oracle_module, scenarios_path=scenarios_path)
     return diagnostic_cell_from_labels(gap, regret)
 
 
-def decision_quality(result, oracle_module=oracle_v1):
+def decision_quality(result, oracle_module=oracle_v1, scenarios_path=None):
     """Whether the final action matches the oracle action."""
-    oracle = oracle_for_result(result, oracle_module)
+    oracle = oracle_for_result(result, oracle_module, scenarios_path=scenarios_path)
     if oracle is None:
         return None
     return _get_attr(result, "final_recommendation") == oracle["action"]
 
 
-def decision_regret(result, oracle_module=oracle_v1):
-    return regret_value(result, oracle_module)
+def decision_regret(result, oracle_module=oracle_v1, scenarios_path=None):
+    return regret_value(result, oracle_module, scenarios_path=scenarios_path)
 
 
-def critical_failure(result, oracle_module=oracle_v1):
+def critical_failure(result, oracle_module=oracle_v1, scenarios_path=None):
     """Gap present and final decision loses expected utility."""
-    cell = diagnostic_cell(result, oracle_module)
+    cell = diagnostic_cell(result, oracle_module, scenarios_path=scenarios_path)
     return cell == "true_positive" if cell is not None else None
 
 
@@ -271,9 +293,9 @@ def repair_success(result):
     return bool(_get_attr(result, "repair_success"))
 
 
-def false_retraction(result, oracle_module=oracle_v1):
+def false_retraction(result, oracle_module=oracle_v1, scenarios_path=None):
     """Changed away from an optimal initial action to a suboptimal final action."""
-    oracle = oracle_for_result(result, oracle_module)
+    oracle = oracle_for_result(result, oracle_module, scenarios_path=scenarios_path)
     if oracle is None:
         return None
     initial = _get_attr(result, "initial_recommendation")
@@ -283,11 +305,11 @@ def false_retraction(result, oracle_module=oracle_v1):
     return bool(initial == oracle["action"] and final != oracle["action"])
 
 
-def justified_update(result, oracle_module=oracle_v1):
+def justified_update(result, oracle_module=oracle_v1, scenarios_path=None):
     """For the new-evidence condition: did the decision match the updated oracle?"""
     if _get_attr(result, "condition") != "new_evidence":
         return None
-    oracle = oracle_for_result(result, oracle_module)
+    oracle = oracle_for_result(result, oracle_module, scenarios_path=scenarios_path)
     if oracle is None:
         return None
     return _get_attr(result, "final_recommendation") == oracle["action"]

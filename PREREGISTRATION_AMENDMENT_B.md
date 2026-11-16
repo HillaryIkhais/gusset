@@ -1,7 +1,8 @@
-# GUSSET — Preregistration Amendment A (v2 Information-Parity Experiment)
+# GUSSET — Preregistration Amendment B (v2 Information-Parity Experiment)
 
 **Original preregistration:** PREREGISTRATION.md (registered 2026-11-12)
-**This amendment:** 2026-11-14
+**This amendment:** 2026-11-14 (published 2026-11-16)
+**Status (2026-11-16):** v2 design, corrected oracle, and pipeline are implemented and covered by regression tests. **No v2 live trials, annotations, analysis, or receipts exist yet. The v2 upgrade is unexecuted.**
 **Purpose:** Correct methodological weaknesses identified in v1 pilot:
 1. Phase 2 challenge prompt did not include original evidence dossier
 2. Phase 3 decision prompt did not include registered probabilities/costs

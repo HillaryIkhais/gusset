@@ -121,6 +121,8 @@ class TrialResult:
         self.timestamp = utc_now()
         self.scenario_hash = None
         self.trial_uid = None
+        self.scenario_file = None
+        self.oracle_version = None
 
         # Raw protocol data (preserved verbatim for reproducibility and receipts)
         self.phase1_prompt = None
@@ -273,6 +275,8 @@ class WarrantRunner:
             "run_number": run_number,
             "run_id": str(uuid.uuid4())[:8],
             "timestamp": utc_now(),
+            "scenario_file": str(Path(self.scenarios_path).resolve()),
+            "oracle_version": getattr(self.oracle_module, "__name__", str(self.oracle_module)),
             "error": str(last_error),
             "error_type": type(last_error).__name__,
         }
@@ -285,6 +289,10 @@ class WarrantRunner:
         result = TrialResult(scenario["id"], model_name, run_id, provider, condition)
         result.run_number = run_number
         result.trial_uid = f"{model_name}|{scenario['id']}|{condition}|{run_number}|{run_id}"
+        # Provenance: which dataset and oracle produced this record. Analysis
+        # uses this so a v2 trial can never be scored against v1 parameters.
+        result.scenario_file = str(Path(self.scenarios_path).resolve())
+        result.oracle_version = getattr(self.oracle_module, "__name__", str(self.oracle_module))
 
         original_oracle = self.oracle_module.compute_optimal_action(scenario)
         result.original_optimal_action = original_oracle["action"]

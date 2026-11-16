@@ -41,6 +41,18 @@ def find_scenario(scenarios, scenario_id):
     return None
 
 
+def _oracle_from_receipt(receipt, scenarios_path):
+    stored = (receipt.get("verification") or {}).get("oracle_module")
+    if stored:
+        if stored.endswith("oracle_v2"):
+            return oracle_v2
+        if stored.endswith("oracle"):
+            return oracle_v1
+    if scenarios_path and Path(scenarios_path).name == "scenarios_v2.json":
+        return oracle_v2
+    return oracle_v1
+
+
 def verify_receipt(receipt, scenarios=None, scenarios_path=None, oracle_module=None):
     """Verify a receipt by recomputing everything from the stored scenario.
 
@@ -56,9 +68,8 @@ def verify_receipt(receipt, scenarios=None, scenarios_path=None, oracle_module=N
     if scenario is None:
         return {"ok": False, "reasons": [f"scenario '{scenario_id}' not found"]}
 
-    # Determine which oracle to use
     if oracle_module is None:
-        oracle_module = oracle_v2 if str(scenarios_path).endswith("scenarios_v2.json") else oracle_v1
+        oracle_module = _oracle_from_receipt(receipt, scenarios_path)
 
     # Recompute scenario hash
     stored_scenario = receipt.get("scenario")
@@ -81,6 +92,8 @@ def verify_receipt(receipt, scenarios=None, scenarios_path=None, oracle_module=N
     stored_oracle_utility = stored_decision.get("oracle_utility")
     stored_regret = stored_decision.get("regret")
     stored_utilities = stored_decision.get("utilities", {})
+    recommended_action = stored_decision.get("recommended_action")
+    stored_recommended_utility = stored_decision.get("recommended_utility")
 
     reasons = []
 
@@ -90,11 +103,31 @@ def verify_receipt(receipt, scenarios=None, scenarios_path=None, oracle_module=N
     if oracle["utility"] != stored_oracle_utility:
         reasons.append(f"oracle utility mismatch: computed={oracle['utility']}, stored={stored_oracle_utility}")
 
-    # Check all stored utilities match recomputed ones
+    # Every action must be present with the recomputed value. A missing key is
+    # as much a tampering signal as a changed one.
+    if set(stored_utilities) != set(oracle["all_utilities"]):
+        reasons.append(
+            "utility action set mismatch: "
+            f"computed={sorted(oracle['all_utilities'])}, stored={sorted(stored_utilities)}"
+        )
     for action_name, stored_util in stored_utilities.items():
         if action_name in oracle["all_utilities"]:
             if oracle["all_utilities"][action_name] != stored_util:
                 reasons.append(f"utility mismatch for '{action_name}': computed={oracle['all_utilities'][action_name]}, stored={stored_util}")
+
+    # Recompute the recommended utility and regret rather than trusting them.
+    if recommended_action in oracle["all_utilities"]:
+        computed_recommended_utility = oracle["all_utilities"][recommended_action]
+        computed_regret = oracle["utility"] - computed_recommended_utility
+        if stored_recommended_utility != computed_recommended_utility:
+            reasons.append(
+                f"recommended utility mismatch: computed={computed_recommended_utility}, stored={stored_recommended_utility}"
+            )
+        if stored_regret != computed_regret:
+            reasons.append(f"regret mismatch: computed={computed_regret}, stored={stored_regret}")
+    else:
+        if stored_regret is not None or stored_recommended_utility is not None:
+            reasons.append(f"recommended action '{recommended_action}' is not a valid action")
 
     # Recompute receipt hash
     receipt_copy = json.loads(json.dumps(receipt))
@@ -102,7 +135,9 @@ def verify_receipt(receipt, scenarios=None, scenarios_path=None, oracle_module=N
     computed_receipt_hash = sha256_obj(receipt_copy)
     stored_receipt_hash = receipt.get("verification", {}).get("receipt_hash")
 
-    if stored_receipt_hash is not None and computed_receipt_hash != stored_receipt_hash:
+    if stored_receipt_hash is None:
+        reasons.append("receipt hash missing")
+    elif computed_receipt_hash != stored_receipt_hash:
         reasons.append(f"receipt hash mismatch: computed={computed_receipt_hash}, stored={stored_receipt_hash}")
 
     return {
@@ -110,7 +145,7 @@ def verify_receipt(receipt, scenarios=None, scenarios_path=None, oracle_module=N
         "reasons": reasons,
         "computed_oracle_action": oracle["action"],
         "computed_oracle_utility": oracle["utility"],
-        "computed_regret": oracle["utility"] - oracle["all_utilities"].get(receipt.get("decision", {}).get("recommended_action")) if receipt.get("decision", {}).get("recommended_action") in oracle["all_utilities"] else None,
+        "computed_regret": oracle["utility"] - oracle["all_utilities"].get(recommended_action) if recommended_action in oracle["all_utilities"] else None,
     }
 
 
@@ -121,15 +156,16 @@ def main():
     parser.add_argument("--quiet", action="store_true", help="Only print PASS/FAIL")
     args = parser.parse_args()
 
-    scenarios = load_scenarios(args.scenario_file)
+    scenarios_path = args.scenario_file or DEFAULT_SCENARIOS_PATH
+    scenarios = load_scenarios(scenarios_path)
 
-    if args.scenario_file and args.scenario_file.endswith("scenarios_v2.json"):
+    if Path(scenarios_path).name == "scenarios_v2.json":
         oracle_module = oracle_v2
     else:
         oracle_module = oracle_v1
 
     receipt = json.load(open(args.receipt))
-    result = verify_receipt(receipt, scenarios, args.scenario_file, oracle_module)
+    result = verify_receipt(receipt, scenarios, scenarios_path, oracle_module)
 
     if args.quiet:
         print("PASS" if result["ok"] else "FAIL")

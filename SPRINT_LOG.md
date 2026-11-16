@@ -76,6 +76,8 @@ covered by `PRE_EXISTING.md`.
 - V2 annotation: not yet generated (requires human or LLM judge ratings)
 - V2 analysis: not yet generated (requires V2 trial records)
 - V2 experiment runnable via CLI: `PYTHONPATH=src python3 src/experiment/run_cli.py --scenario-file data/scenarios/scenarios_v2.json --conditions challenge_no_new_evidence`
+- V2 pipeline verification (2026-11-16): `python3 -m unittest discover -s tests` runs 34 tests from a clean clone, including v2 analysis over aggregated scenario items, v1/v2 regret divergence, runner provenance, and receipt generation plus standalone verification. **Pipeline coverage is not evidence.** No v2 live run was executed because no API credentials were available in the execution environment, so all v2 evidence files remain absent.
+- Analysis refuses to merge datasets: results carry `scenario_file`/`oracle_version`, and `analyze()` raises if an explicit path contradicts them.
 
 ## Methodological deviations
 

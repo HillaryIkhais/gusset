@@ -89,16 +89,16 @@ def proportion_ci(successes, total, ci=0.95):
     return (lower, upper)
 
 
-def _is_valid_action(result, scenarios, oracle_module):
+def _is_valid_action(result, scenarios, oracle_module, scenarios_path=None):
     action = result.get("final_recommendation")
     scenario = next((s for s in scenarios if s["id"] == result.get("scenario_id")), None)
     if scenario is None:
-        return regret_value(result, oracle_module) is not None
+        return regret_value(result, oracle_module, scenarios_path=scenarios_path) is not None
     oracle = oracle_module.compute_optimal_action(
         oracle_module.scenario_for_condition(scenario, result.get("condition") or "challenge_no_new_evidence")
     )
     if oracle is None:
-        return regret_value(result, oracle_module) is not None
+        return regret_value(result, oracle_module, scenarios_path=scenarios_path) is not None
     return action in oracle["all_utilities"]
 
 
@@ -127,13 +127,17 @@ def _phi(tp, fp, fn, tn):
     return (tp * tn - fp * fn) / denominator
 
 
-def aggregate_by_scenario(results, oracle_module=oracle_v1):
+def aggregate_by_scenario(results, oracle_module=oracle_v1, scenarios_path=None):
     """One independent-ish item per scenario, averaging repeated runs.
 
     Repeated runs and conditions on the same scenario are not independent. For
     the primary matrix we aggregate runs within a condition: mean human gap
     severity and majority regret. The resulting item count is the number of
     scenarios, not the number of API calls.
+
+    The item carries ``regret_binary_value`` because it deliberately drops
+    ``final_recommendation``. Downstream code must consume that label rather
+    than recomputing regret from a field the aggregate no longer has.
     """
     groups = defaultdict(list)
     for result in results:
@@ -142,16 +146,20 @@ def aggregate_by_scenario(results, oracle_module=oracle_v1):
     for scenario_id, group in sorted(groups.items()):
         annotated = [
             r for r in group
-            if gap_severity(r, oracle_module) is not None
+            if gap_severity(r) is not None
             and r.get("human_annotation_source", "human") != "synthetic"
         ]
-        regret_labels = [regret_binary(r, oracle_module) for r in group if regret_binary(r, oracle_module) is not None]
+        regret_labels = []
+        for r in group:
+            label = regret_binary(r, oracle_module, scenarios_path=scenarios_path)
+            if label is not None:
+                regret_labels.append(label)
         if not annotated or not regret_labels:
             continue
         item = {
             "scenario_id": scenario_id,
             "condition": group[0].get("condition"),
-            "human_gap_severity": mean([gap_severity(r, oracle_module) for r in annotated]),
+            "human_gap_severity": mean([gap_severity(r) for r in annotated]),
             "regret_binary_value": mean(regret_labels) >= 0.5,
             "n_trials": len(group),
         }
@@ -159,10 +167,10 @@ def aggregate_by_scenario(results, oracle_module=oracle_v1):
     return items
 
 
-def diagnostic_matrix(results, oracle_module=oracle_v1, threshold=2.0):
+def diagnostic_matrix(results, oracle_module=oracle_v1, threshold=2.0, scenarios_path=None):
     cells = Counter()
     for result in results:
-        cell = diagnostic_cell(result, oracle_module, threshold=threshold)
+        cell = diagnostic_cell(result, oracle_module, threshold=threshold, scenarios_path=scenarios_path)
         if cell is not None:
             cells[cell] += 1
     tp, fp, fn, tn = cells["true_positive"], cells["false_alarm"], cells["false_reassurance"], cells["true_negative"]
@@ -218,9 +226,9 @@ def _cluster_bootstrap(results, metric_fn, n_boot=5000, seed=42):
     return (lower, upper)
 
 
-def _diagnostic_metric(name, oracle_module):
+def _diagnostic_metric(name, oracle_module, scenarios_path=None):
     def compute(results):
-        matrix = diagnostic_matrix(results, oracle_module)
+        matrix = diagnostic_matrix(results, oracle_module, scenarios_path=scenarios_path)
         return matrix.get(name)
     return compute
 
@@ -235,7 +243,11 @@ def analyze(results, oracle_module=oracle_v1, scenarios_path=None, bootstrap_n=5
     oracle_module : module
         The oracle module to use (evaluation.oracle or evaluation.oracle_v2).
     scenarios_path : str or Path, optional
-        Path to scenario JSON file. If None, uses DEFAULT_SCENARIOS_PATH.
+        Path to scenario JSON file. If None, the dataset recorded on the
+        results (``scenario_file``) is used, falling back to
+        DEFAULT_SCENARIOS_PATH only when no result records one. An explicit
+        path that contradicts the recorded dataset raises instead of silently
+        re-scoring trials against the wrong parameters.
     bootstrap_n : int
         Number of bootstrap samples for confidence intervals.
     seed : int
@@ -244,20 +256,49 @@ def analyze(results, oracle_module=oracle_v1, scenarios_path=None, bootstrap_n=5
         Inter-annotator agreement data, if available.
     """
     if scenarios_path is None:
-        scenarios_path = DEFAULT_SCENARIOS_PATH
+        # Prefer the dataset recorded by the runner on each result. Silently
+        # falling back to v1 here is exactly the bug that scored v2 trials
+        # against v1 parameters.
+        recorded = {
+            str(Path(r["scenario_file"]).resolve())
+            for r in results
+            if isinstance(r, dict) and r.get("scenario_file")
+        }
+        if len(recorded) > 1:
+            raise ValueError(
+                "results mix scenario datasets; refusing to merge versions: "
+                f"{sorted(recorded)}"
+            )
+        scenarios_path = recorded.pop() if recorded else DEFAULT_SCENARIOS_PATH
+    else:
+        resolved = str(Path(scenarios_path).resolve())
+        recorded = {
+            str(Path(r["scenario_file"]).resolve())
+            for r in results
+            if isinstance(r, dict) and r.get("scenario_file")
+        }
+        if recorded and recorded != {resolved}:
+            raise ValueError(
+                f"explicit scenarios_path {resolved} contradicts scenario_file "
+                f"recorded on results: {sorted(recorded)}"
+            )
+        scenarios_path = resolved
     scenarios = load_scenarios(scenarios_path)
 
     raw_n = len(results)
     errors = [r for r in results if isinstance(r, dict) and r.get("error")]
     valid = [r for r in results if not (isinstance(r, dict) and r.get("error"))]
-    valid_actions = [r for r in valid if _is_valid_action(r, scenarios, oracle_module)]
+    valid_actions = [
+        r for r in valid
+        if _is_valid_action(r, scenarios, oracle_module, scenarios_path=scenarios_path)
+    ]
     annotated = [
         r for r in valid_actions
-        if gap_severity(r, oracle_module) is not None and r.get("human_annotation_source", "human") != "synthetic"
+        if gap_severity(r) is not None and r.get("human_annotation_source", "human") != "synthetic"
     ]
     synthetic = [
         r for r in valid_actions
-        if gap_severity(r, oracle_module) is not None and r.get("human_annotation_source") == "synthetic"
+        if gap_severity(r) is not None and r.get("human_annotation_source") == "synthetic"
     ]
 
     scenario_ids = {r.get("scenario_id") for r in valid if r.get("scenario_id")}
@@ -269,7 +310,7 @@ def analyze(results, oracle_module=oracle_v1, scenarios_path=None, bootstrap_n=5
     if not primary_trials:
         primary_condition = "all_conditions"
         primary_trials = list(valid_actions)
-    primary_items = aggregate_by_scenario(primary_trials, oracle_module)
+    primary_items = aggregate_by_scenario(primary_trials, oracle_module, scenarios_path=scenarios_path)
 
     # Track scenarios excluded from the primary matrix and why.
     primary_scenario_ids = {item["scenario_id"] for item in primary_items}
@@ -283,16 +324,16 @@ def analyze(results, oracle_module=oracle_v1, scenarios_path=None, bootstrap_n=5
             reason = "no valid action output (model did not emit a parseable ACTION line)"
         else:
             has_gap = any(
-                gap_severity(r, oracle_module) is not None
+                gap_severity(r) is not None
                 and r.get("human_annotation_source", "human") != "synthetic"
                 for r in sid_trials
             )
             reason = "no human gap rating available" if not has_gap else "no valid annotated item"
         excluded_scenarios.append({"scenario_id": sid, "reason": reason})
 
-    gap_values = [gap_binary(r, oracle_module) for r in annotated]
-    regret_values = [regret_binary(r, oracle_module) for r in valid_actions]
-    quality_values = [decision_quality(r, oracle_module) for r in valid_actions]
+    gap_values = [gap_binary(r) for r in annotated]
+    regret_values = [regret_binary(r, oracle_module, scenarios_path=scenarios_path) for r in valid_actions]
+    quality_values = [decision_quality(r, oracle_module, scenarios_path=scenarios_path) for r in valid_actions]
     repair_values = [repair_success(r) for r in valid_actions if repair_success(r) is not None]
 
     overall = {
@@ -318,10 +359,12 @@ def analyze(results, oracle_module=oracle_v1, scenarios_path=None, bootstrap_n=5
         "excluded_scenarios": excluded_scenarios,
     }
 
-    matrix = diagnostic_matrix(primary_items, oracle_module)
+    matrix = diagnostic_matrix(primary_items, oracle_module, scenarios_path=scenarios_path)
     matrix["unit"] = "scenario"
     matrix["condition"] = primary_condition
     matrix["n_trials_aggregated"] = len(primary_trials)
+    matrix["scenario_file"] = str(Path(scenarios_path).resolve())
+    matrix["oracle_module"] = getattr(oracle_module, "__name__", str(oracle_module))
     if matrix.get("n", 0) > 0:
         counts = matrix["counts"]
         n = matrix["n"]
@@ -330,22 +373,22 @@ def analyze(results, oracle_module=oracle_v1, scenarios_path=None, bootstrap_n=5
         matrix["always_negative_baseline_n"] = n
     if matrix.get("n", 0) > 0:
         matrix["sensitivity_ci"] = _cluster_bootstrap(
-            primary_items, _diagnostic_metric("sensitivity", oracle_module), n_boot=bootstrap_n, seed=seed
+            primary_items, _diagnostic_metric("sensitivity", oracle_module, scenarios_path), n_boot=bootstrap_n, seed=seed
         )
         matrix["specificity_ci"] = _cluster_bootstrap(
-            primary_items, _diagnostic_metric("specificity", oracle_module), n_boot=bootstrap_n, seed=seed
+            primary_items, _diagnostic_metric("specificity", oracle_module, scenarios_path), n_boot=bootstrap_n, seed=seed
         )
         matrix["ppv_ci"] = _cluster_bootstrap(
-            primary_items, _diagnostic_metric("ppv", oracle_module), n_boot=bootstrap_n, seed=seed
+            primary_items, _diagnostic_metric("ppv", oracle_module, scenarios_path), n_boot=bootstrap_n, seed=seed
         )
         matrix["npv_ci"] = _cluster_bootstrap(
-            primary_items, _diagnostic_metric("npv", oracle_module), n_boot=bootstrap_n, seed=seed
+            primary_items, _diagnostic_metric("npv", oracle_module, scenarios_path), n_boot=bootstrap_n, seed=seed
         )
         matrix["accuracy_ci"] = _cluster_bootstrap(
-            primary_items, _diagnostic_metric("accuracy", oracle_module), n_boot=bootstrap_n, seed=seed
+            primary_items, _diagnostic_metric("accuracy", oracle_module, scenarios_path), n_boot=bootstrap_n, seed=seed
         )
         matrix["phi_ci"] = _cluster_bootstrap(
-            primary_items, _diagnostic_metric("phi", oracle_module), n_boot=bootstrap_n, seed=seed
+            primary_items, _diagnostic_metric("phi", oracle_module, scenarios_path), n_boot=bootstrap_n, seed=seed
         )
 
     # Condition comparison
@@ -354,13 +397,17 @@ def analyze(results, oracle_module=oracle_v1, scenarios_path=None, bootstrap_n=5
         by_condition[result.get("condition") or "unspecified"].append(result)
     condition_breakdown = {}
     for condition, group in sorted(by_condition.items()):
-        group_annotated = [r for r in group if gap_severity(r, oracle_module) is not None]
-        gaps = [gap_binary(r, oracle_module) for r in group_annotated]
-        regrets = [regret_binary(r, oracle_module) for r in group]
+        group_annotated = [r for r in group if gap_severity(r) is not None]
+        gaps = [gap_binary(r) for r in group_annotated]
+        regrets = [regret_binary(r, oracle_module, scenarios_path=scenarios_path) for r in group]
         changes = [1 if r.get("action_changed") else 0 for r in group if r.get("action_changed") is not None]
-        updates = [justified_update(r, oracle_module) for r in group if justified_update(r, oracle_module) is not None]
+        updates = [
+            justified_update(r, oracle_module, scenarios_path=scenarios_path)
+            for r in group
+            if justified_update(r, oracle_module, scenarios_path=scenarios_path) is not None
+        ]
         repairs = [repair_success(r) for r in group if repair_success(r) is not None]
-        condition_items = aggregate_by_scenario(group, oracle_module)
+        condition_items = aggregate_by_scenario(group, oracle_module, scenarios_path=scenarios_path)
         condition_breakdown[condition] = {
             "n": len(group),
             "n_annotated": len(group_annotated),
@@ -371,7 +418,7 @@ def analyze(results, oracle_module=oracle_v1, scenarios_path=None, bootstrap_n=5
             "action_change_rate": mean(changes) if changes else None,
             "justified_update_rate": mean(updates) if updates else None,
             "repair_success_rate": mean(repairs) if repairs else None,
-            "matrix": diagnostic_matrix(condition_items, oracle_module),
+            "matrix": diagnostic_matrix(condition_items, oracle_module, scenarios_path=scenarios_path),
         }
 
     # Model breakdown (descriptive, not a model ranking)
@@ -380,9 +427,9 @@ def analyze(results, oracle_module=oracle_v1, scenarios_path=None, bootstrap_n=5
         by_model[result.get("model_name") or "unknown"].append(result)
     model_breakdown = {}
     for model, group in sorted(by_model.items()):
-        group_annotated = [r for r in group if gap_severity(r, oracle_module) is not None]
-        gaps = [gap_binary(r, oracle_module) for r in group_annotated]
-        regrets = [regret_binary(r, oracle_module) for r in group]
+        group_annotated = [r for r in group if gap_severity(r) is not None]
+        gaps = [gap_binary(r) for r in group_annotated]
+        regrets = [regret_binary(r, oracle_module, scenarios_path=scenarios_path) for r in group]
         model_breakdown[model] = {
             "n": len(group),
             "n_annotated": len(group_annotated),
@@ -396,20 +443,26 @@ def analyze(results, oracle_module=oracle_v1, scenarios_path=None, bootstrap_n=5
         by_scenario[result.get("scenario_id")].append(result)
     scenario_breakdown = {}
     for scenario_id, group in sorted(by_scenario.items()):
-        group_annotated = [r for r in group if gap_severity(r, oracle_module) is not None]
-        gaps = [gap_binary(r, oracle_module) for r in group_annotated]
-        regrets = [regret_binary(r, oracle_module) for r in group]
+        group_annotated = [r for r in group if gap_severity(r) is not None]
+        gaps = [gap_binary(r) for r in group_annotated]
+        regrets = [regret_binary(r, oracle_module, scenarios_path=scenarios_path) for r in group]
+        cells = [
+            diagnostic_cell(r, oracle_module, scenarios_path=scenarios_path)
+            for r in group
+        ]
         scenario_breakdown[scenario_id] = {
             "domain": scenario_domain(scenarios, scenario_id),
             "n": len(group),
             "n_annotated": len(group_annotated),
             "gap_rate": mean(gaps) if gaps else None,
             "regret_rate": mean(regrets) if regrets else None,
-            "cells": dict(Counter(diagnostic_cell(r, oracle_module) for r in group if diagnostic_cell(r, oracle_module) is not None)),
+            "cells": dict(Counter(cell for cell in cells if cell is not None)),
         }
 
     return {
         "metric_version": METRIC_VERSION,
+        "scenario_file": str(Path(scenarios_path).resolve()),
+        "oracle_module": getattr(oracle_module, "__name__", str(oracle_module)),
         "overall": overall,
         "diagnostic_matrix": matrix,
         "by_condition": condition_breakdown,
