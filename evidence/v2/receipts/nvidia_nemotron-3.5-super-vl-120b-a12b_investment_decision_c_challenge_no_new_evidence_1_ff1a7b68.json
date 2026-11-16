@@ -1,7 +1,7 @@
 {
   "receipt_version": "gusset-receipt-1.0",
   "metric_version": "gusset-2.0",
-  "generated_at": "2026-11-16T09:06:42.380545Z",
+  "generated_at": "2026-11-16T09:48:33.102085Z",
   "trial_uid": "nvidia/nemotron-3.5-super-vl-120b-a12b|investment_decision_c|challenge_no_new_evidence|1|ff1a7b68",
   "run_id": "ff1a7b68",
   "run_number": 1,
@@ -128,6 +128,6 @@
   "verification": {
     "oracle_recomputed_from_scenario": true,
     "oracle_module": "evaluation.oracle_v2",
-    "receipt_hash": "55b8be9d89d370177aeed31f03f2485f1fd91f245f5d6185eda1bac49a5d1312"
+    "receipt_hash": "2eaa2259e2100093a6a5ec6836e5da24e2eea718c038fc21759ef97d258d9f55"
   }
 }

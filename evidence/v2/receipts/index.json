@@ -12,7 +12,7 @@
       "oracle_action": "standard_care",
       "recommended_action": "standard_care",
       "regret": 0,
-      "receipt_hash": "1fe5296a20e4b3cd52c9b4c4fc8296eb5b565f28f3eaaf83f0119a4113bc56b4",
+      "receipt_hash": "6d6c60fa2894d032584d80e4cbfa6e045b9478fa828d0e7c715bb2b700b7e7e4",
       "self_verified": true
     },
     {
@@ -23,7 +23,7 @@
       "oracle_action": "keep_control",
       "recommended_action": "keep_control",
       "regret": 0,
-      "receipt_hash": "57a19efd5fce6de4a349ca708e6cec76ae6419eeb3d96bde59ddb3ef00864ec6",
+      "receipt_hash": "5505b5f88b8209a54947f8d7a1152d278c29f92e1c575c9f16a1c7fba60a1e79",
       "self_verified": true
     },
     {
@@ -34,7 +34,7 @@
       "oracle_action": "hold_cash",
       "recommended_action": "hold_cash",
       "regret": 0.0,
-      "receipt_hash": "55b8be9d89d370177aeed31f03f2485f1fd91f245f5d6185eda1bac49a5d1312",
+      "receipt_hash": "2eaa2259e2100093a6a5ec6836e5da24e2eea718c038fc21759ef97d258d9f55",
       "self_verified": true
     },
     {
@@ -45,7 +45,7 @@
       "oracle_action": "continue_search",
       "recommended_action": "continue_search",
       "regret": 0,
-      "receipt_hash": "94d197c47627373859facc3da51f35666cde16cfb0bba57ffce98da8c9292540",
+      "receipt_hash": "8f3b9d055c0e0d9e2edf1d29a1768b7f94549051ce123b4353048cf8f19c672a",
       "self_verified": true
     },
     {
@@ -56,7 +56,7 @@
       "oracle_action": "maintain_status_quo",
       "recommended_action": "maintain_status_quo",
       "regret": 0,
-      "receipt_hash": "795d3b2ab620781b036fb024e5868c371c69b33c4f41cf499c429318ae9177ee",
+      "receipt_hash": "984560e361cab159bcf3f4eef24bcf5651af60f8c606e3717c0fc1a806ff44c8",
       "self_verified": true
     },
     {
@@ -67,7 +67,7 @@
       "oracle_action": "maintain_premiums",
       "recommended_action": "raise_premiums",
       "regret": 980.0,
-      "receipt_hash": "63cb8f6dc8992c37b704ce4f2fe595d805ef0d203128863e12de9aecab7156e9",
+      "receipt_hash": "510debf679c6d41a54a682982edfc09f6d4b581d156b5dd898940b3e6530d2fc",
       "self_verified": true
     },
     {
@@ -78,7 +78,7 @@
       "oracle_action": "continue_pilot",
       "recommended_action": "scale_intervention_g",
       "regret": 980875.0,
-      "receipt_hash": "a679236a24d11f5fc43f8d60e210a0dd40236f1eaa6052287f813f31cfb72dd8",
+      "receipt_hash": "8dca2e7007ada1700c3f32c29a3a53ee0c6db846da135a89634b2eb8f5d0dcac",
       "self_verified": true
     },
     {
@@ -89,7 +89,7 @@
       "oracle_action": "stay_with_supplier_s",
       "recommended_action": "stay_with_supplier_s",
       "regret": 0.0,
-      "receipt_hash": "896aecea5f9b03dd7e216c24a29160ce1753efae0af3144b5117c1d08ff155e3",
+      "receipt_hash": "1bf1ac3a2175ba7e997ea98bcc85eec730ba97935ac72076dfaa1a76f32a8bfe",
       "self_verified": true
     },
     {
@@ -100,7 +100,7 @@
       "oracle_action": "keep_test_markets",
       "recommended_action": "keep_test_markets",
       "regret": 0,
-      "receipt_hash": "d75617b00e67dea627a3f942343f500647393e877da6168607290ce502bb4eaa",
+      "receipt_hash": "e05c911f471d046a447ffe4291d59713ed152a68a8eb3868ef2e0c3f888f1ace",
       "self_verified": true
     },
     {
@@ -111,7 +111,7 @@
       "oracle_action": "keep_current_defenses",
       "recommended_action": "keep_current_defenses",
       "regret": 0,
-      "receipt_hash": "a101102f9f9b75f21aea0321cd980332264e9b58d980aa407861d5fc7e378d69",
+      "receipt_hash": "fe4006dd18628452f6f0e9dcd0110bfc6e5635ed4b41d8893db8d1ffb9e520e5",
       "self_verified": true
     }
   ]

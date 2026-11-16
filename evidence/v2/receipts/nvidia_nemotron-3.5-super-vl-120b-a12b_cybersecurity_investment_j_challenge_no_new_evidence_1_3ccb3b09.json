@@ -1,7 +1,7 @@
 {
   "receipt_version": "gusset-receipt-1.0",
   "metric_version": "gusset-2.0",
-  "generated_at": "2026-11-16T09:06:42.429368Z",
+  "generated_at": "2026-11-16T09:48:33.118799Z",
   "trial_uid": "nvidia/nemotron-3.5-super-vl-120b-a12b|cybersecurity_investment_j|challenge_no_new_evidence|1|3ccb3b09",
   "run_id": "3ccb3b09",
   "run_number": 1,
@@ -131,6 +131,6 @@
   "verification": {
     "oracle_recomputed_from_scenario": true,
     "oracle_module": "evaluation.oracle_v2",
-    "receipt_hash": "a101102f9f9b75f21aea0321cd980332264e9b58d980aa407861d5fc7e378d69"
+    "receipt_hash": "fe4006dd18628452f6f0e9dcd0110bfc6e5635ed4b41d8893db8d1ffb9e520e5"
   }
 }
