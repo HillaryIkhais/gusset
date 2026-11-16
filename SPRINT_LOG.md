@@ -50,8 +50,9 @@ covered by `PRE_EXISTING.md`.
 - [x] Generate v2 receipts and verify integrity (SHA256SUMS)
 - [x] Update PREREGISTRATION_AMENDMENT_B.md with results
 - [x] Commit v2 evidence (analysis.json, annotation_ratings.json, receipts/)
-- [x] Push to GitHub (main, master)
-- [x] Verify from clean clone (35 tests pass)
+- [x] Push to GitHub (main)
+- [ ] Verify from clean clone (master branch needs sync)
+- [ ] Final repository sync: master branch at `d0a9e68` does NOT include v2 evidence
 
 ## 2026-11-15 — Sprint day 3
 
@@ -59,27 +60,29 @@ covered by `PRE_EXISTING.md`.
 - [x] P0: Exact binomial confidence intervals for all diagnostic metrics (sensitivity, specificity, PPV, NPV, accuracy).
 - [x] P0: Signed revision metric added (init_sev − defd_sev, not clipped to zero).
 - [x] P0: Three-measurement framework documented (init_sev, defd_sev, gap_severity, regret).
-- [x] P0: Uncertainty explicitly stated — nine-case pilot, single regret-positive observation.
+- [x] P0: Uncertainty explicitly stated — V1 nine-case pilot, single regret-positive observation.
 
 ## Data status
 
 | Asset | Status | Notes |
 |---|---|---|
 | Mock pipeline | working | not evidence |
-| Live NVIDIA pilot | complete | 10/10 scenarios, challenge condition |
-| Human initial ratings | not completed | LLM judge substituted on day 1 (see Amendment A) |
-| Human defended ratings | not completed | LLM judge substituted on day 1 (see Amendment A) |
-| LLM-judge initial ratings | complete | `reports/llm_judge_initial.json` |
-| LLM-judge defended ratings | complete | `reports/llm_judge_defended.json` |
-| Receipts from live data | complete | 10/10 verified |
-| Final report | complete | 4 pages, `reports/GUSSET_report.pdf` |
+| Live NVIDIA pilot (V1) | complete | 9/9 scenarios, challenge condition |
+| V1 Human initial ratings | not completed | LLM judge substituted on day 1 |
+| V1 Human defended ratings | not completed | LLM judge substituted on day 1 |
+| V1 LLM-judge ratings | complete | `reports/llm_judge_initial.json`, `llm_judge_defended.json` |
+| V1 Receipts | complete | 10/10 verified |
+| Live NVIDIA pilot (V2) | complete | 10/10 scenarios, real NVIDIA API calls |
+| V2 LLM-judge ratings | complete | 8/10 complete gap ratings |
+| V2 Analysis | complete | `evidence/v2/analysis.json` |
+| V2 Receipts | complete | `evidence/v2/receipts/`, 10/10 verified |
+| V2 SHA256SUMS | complete | `evidence/v2/SHA256SUMS` |
+| Final report (V1) | complete | `production/SUBMISSION_POST.md` |
 | Submission | pending | date to be recorded upon submission |
 | Public demo fixtures | committed | `demo/fixtures/` — runs from clean clone |
-| Evidence file | committed | `evidence/headline_results.json` |
-| V1 evidence (committed) | `evidence/v1/` | annotated.json, llm_judge_*.json, analysis.json, annotation_ratings.json |
-| V2 scenario set | committed | `data/scenarios/scenarios_v2.json` + `evidence/v2/SHA256SUMS` |
-| V2 oracle | committed | `src/evaluation/oracle_v2.py` (corrected reference frames) |
-| Scenario/oracle audit | committed | `evidence/scenario_oracle_audit.csv` |
+| V1 evidence (committed) | `evidence/v1/` | annotated.json, llm_judge_*.json, analysis.json |
+| V2 scenario set | committed | `data/scenarios/scenarios_v2.json` |
+| V2 oracle | committed | `src/evaluation/oracle_v2.py` |
 
 ## V2 Experiment Status
 
@@ -91,30 +94,28 @@ covered by `PRE_EXISTING.md`.
 - V2 receipts: **generated** (`evidence/v2/receipts/`, 10/10 verified)
 - V2 trial records: `reports/live_v2.json`
 
-## Methodological deviations
+## V2 Results Summary
 
-Human annotation was not completed within the sprint timeline. The submitted analysis uses a blinded LLM judge (`nvidia/nemotron-3.5-super-vl-120b-a12b`, same model family as the evaluated model) with one rating per item per task instead of two independent human annotators per task. This deviation is documented in `PREREGISTRATION.md` (Amendment A, 2026-11-13). Resulting judge-based diagnostic findings are classified as exploratory.
+| Metric | Value | 95% CI |
+|---|---|---|
+| Regret rate | 2/10 (0.20) | [0.025, 0.556] |
+| Gap rate (≥2) | 5/8 complete (0.625) | [0.245, 0.915] |
+| Sensitivity (threshold ≥2) | 100% (TP=1) | [1.0, 1.0] |
+| PPV (threshold ≥3) | 0.5 | defined |
+| Accuracy | 50% | [0.125, 0.875] |
 
-## Critical sample-size limitation (P0)
-
-The v1 pilot contains exactly **one regret-positive scenario** among nine annotated items. All sensitivity, PPV, and related proportions therefore have a denominator of 1, producing extremely wide confidence intervals (e.g., sensitivity 0.0% with 95% CI [0.0%–97.5%]). The residual-overstatement diagnostic (defd_sev >= 1) identifies the regret case with 100% sensitivity, but this is 1/1 and cannot be interpreted as evidence of predictive validity. All results from this pilot must be read as preliminary and hypothesis-generating only.
-
-**The v2 experiment contains ONE regret-positive observation** (educational_intervention_g, regret=980875). This single positive case limits statistical power. Binomial exact 95% CI for regret rate (2/10): [0.025, 0.556]. At threshold >= 3, PPV CI includes 0, reflecting uncertainty.
-
-Thresholds (>=1, >=2, >=3) were preregistered and not selected post-hoc based on results. No threshold should be interpreted as validated on this sample size.
-
-All nine scenarios are retained in the analysis; none are excluded or filtered for convenience.
+**Critical sample-size limitation:** N=1 regret-positive case (educational_intervention_g, regret=980875).
 
 ## Methodological deviations
 
-Human annotation was not completed within the sprint timeline. The submitted analysis uses a blinded LLM judge (`nvidia/nemotron-3.5-super-vl-120b-a12b`, same model family as the evaluated model) with one rating per item per task instead of two independent human annotators per task. This deviation is documented in `PREREGISTRATION.md` (Amendment A, 2026-11-13). Resulting judge-based diagnostic findings are classified as exploratory.
+Human annotation was not completed within the sprint timeline for either V1 or V2. Both analyses use a blinded LLM judge (`nvidia/nemotron-3.5-super-vl-120b-a12b`, same model family as the evaluated model) with one rating per item per task instead of two independent human annotators per task. This deviation is documented in `PREREGISTRATION_AMENDMENT_B.md`. All judge-based diagnostic findings are classified as exploratory.
 
-## Critical sample-size limitation (P0)
+## Repository status
 
-The v1 pilot contains exactly **one regret-positive scenario** among nine annotated items. All sensitivity, PPV, and related proportions therefore have a denominator of 1, producing extremely wide confidence intervals (e.g., sensitivity 0.0% with 95% CI [0.0%–97.5%]). The residual-overstatement diagnostic (defd_sev >= 1) identifies the regret case with 100% sensitivity, but this is 1/1 and cannot be interpreted as evidence of predictive validity. All results from this pilot must be read as preliminary and hypothesis-generating only.
+**Branch synchronization required:** GitHub shows `master` as default branch at `d0a9e68` (V1 only). V2 evidence is at commit `5a33b04` on `main` branch. To synchronize:
 
-**The v2 experiment contains ONE regret-positive observation** (educational_intervention_g, regret=980875). This single positive case limits statistical power. Binomial exact 95% CI for regret rate (2/10): [0.025, 0.556]. At threshold >= 3, PPV CI includes 0, reflecting uncertainty.
+```bash
+git push origin main:master
+```
 
-Thresholds (>=1, >=2, >=3) were preregistered and not selected post-hoc based on results. No threshold should be interpreted as validated on this sample size.
-
-All nine scenarios are retained in the analysis; none are excluded or filtered for convenience.
+Or change repository settings to make `main` the default branch.

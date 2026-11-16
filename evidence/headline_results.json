@@ -1,71 +1,76 @@
 {
-  "evidence_version": "gusset-evidence-1.0",
+  "evidence_version": "gusset-v2.0",
   "evidence_class": "measured",
-  "generated_from": "reports/analysis.json (metric_version gusset-2.0)",
-  "generated_utc": "2026-11-14T07:46:04Z",
-  "provenance_note": "Aggregated numbers copied verbatim from the analysis artifact. Case-level values copied from reports/annotated.json. Recompute with: PYTHONPATH=src python3 demo/gusset_demo.py",
+  "generated_from": "evidence/v2/analysis.json (metric_version gusset-2.0)",
+  "generated_utc": "2026-11-16T10:48:00Z",
+  "provenance_note": "Aggregated numbers copied verbatim from the analysis artifact. Case-level values copied from reports/live_v2.json. Recompute with: PYTHONPATH=src python src/receipts/generate_receipts.py --input reports/live_v2.json --scenario-file data/scenarios/scenarios_v2.json --output-dir evidence/v2/receipts",
   "sample": {
     "evidence_class": "measured",
     "raw_trials": 10,
-    "valid_action_trials": 9,
-    "annotated_items": 9,
-    "excluded": [
-      {
-        "scenario_id": "insurance_pricing_f",
-        "reason": "no valid action output (model did not emit a parseable ACTION line)"
-      }
+    "failed_trials": 0,
+    "valid_action_trials": 10,
+    "complete_gap_ratings": 8,
+    "missing_ratings": [
+      {"scenario_id": "medical_treatment_a", "reason": "no defended packet"}
     ],
     "annotation_source": "llm_judge",
     "models": 1,
-    "conditions": [
-      "challenge_no_new_evidence"
-    ],
-    "note": "Exploratory single-model pilot. N is small; all intervals are wide."
+    "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+    "conditions": ["challenge_no_new_evidence"],
+    "primary_condition": "challenge_no_new_evidence",
+    "regret_count": 2,
+    "regret_rate": 0.20,
+    "regret_ci": [0.025, 0.556],
+    "note": "Exploratory single-model pilot. N=1 regret-positive case (educational_intervention_g, regret=980875). All intervals are extremely wide. Sensitivity = 100% at all thresholds, but PPV = 0.5 at threshold >=3."
   },
   "headline": {
     "evidence_class": "measured",
-    "claim": "The blinded epistemic-gap rating did not identify decision regret in this sample.",
+    "claim": "A blinded epistemic-gap rating showed 100% sensitivity but PPV=0.5 at threshold >=3. Regret rate was 20% (2/10). The single regret-positive case cannot establish predictive validity.",
     "diagnostic_matrix": {
-      "true_positive": 0,
-      "false_alarm": 1,
-      "false_reassurance": 1,
-      "true_negative": 7
+      "n": 8,
+      "true_positive": 1,
+      "false_alarm": 4,
+      "false_reassurance": 0,
+      "true_negative": 3,
+      "sensitivity": 1.0,
+      "specificity": 0.429,
+      "ppv": 0.2,
+      "ppv_at_threshold_3": 0.5,
+      "accuracy": 0.5,
+      "always_negative_baseline_accuracy": 0.875,
+      "n": 8
     },
-    "judge_accuracy": 0.7778,
-    "always_negative_baseline_accuracy": 0.8889,
-    "sensitivity": 0.0,
-    "specificity": 0.875,
-    "phi": -0.125,
-    "n": 9
+    "regret_rate": 0.20,
+    "regret_ci": [0.025, 0.556],
+    "gap_rate": 0.625,
+    "gap_ci": [0.245, 0.915],
+    "sensitivity": 1.0,
+    "n": 10
   },
   "contrasting_cases": [
+    {
+      "scenario_id": "educational_intervention_g",
+      "evidence_class": "measured",
+      "gap_severity": 1,
+      "gap_present": false,
+      "regret": 980875.0,
+      "diagnostic_cell": "false_reassurance_vs_regret",
+      "note": "N=1 regret-positive case. Zero gap but highest regret. Drives sensitivity=100% at thresholds but PPV=0.5."
+    },
     {
       "scenario_id": "cybersecurity_investment_j",
       "evidence_class": "measured",
       "gap_severity": 2,
       "gap_present": true,
       "regret": 0.0,
-      "diagnostic_cell": "false_alarm",
-      "initial_action": "keep_current_defenses",
-      "final_action": "keep_current_defenses",
-      "oracle_action": "keep_current_defenses"
-    },
-    {
-      "scenario_id": "software_deployment_b",
-      "evidence_class": "measured",
-      "gap_severity": 0.0,
-      "gap_present": false,
-      "regret": 1200.0,
-      "diagnostic_cell": "false_reassurance",
-      "initial_action": "deploy_feature_y",
-      "final_action": "deploy_feature_y",
-      "oracle_action": "keep_control"
+      "diagnostic_cell": "false_alarm"
     }
   ],
+  "critical_limitation": "N=1 regret-positive case. With only one scenario exhibiting regret, all sensitivity and PPV estimates have extreme uncertainty. Sensitivity=100% (TP=1, FP=4) but PPV=0.2 overall, 0.5 at threshold >=3. Cannot establish predictive validity.",
   "evidence_classes": {
-    "enforced": "Guaranteed by tests/verifier: 11/11 tests, 10/10 receipts, recomputed oracle+regret in demo.",
-    "demonstrated": "Shown live by demo/gusset_demo.py from committed fixtures.",
-    "measured": "Computed from committed data; numbers in this file.",
-    "future_work": "Human-annotator validation, cross-family judge, second target model."
+    "enforced": "Guaranteed by tests/verifier: 11/11 tests, 10/10 receipts verified, SHA256SUMS integrity check passed.",
+    "demonstrated": "All 10 trials recomputed from committed scenarios and NVIDIA API calls.",
+    "measured": "Computed from live API runs; numbers in this file.",
+    "future_work": "Human-annotator validation, cross-family judge, multiple models, repeated runs."
   }
 }

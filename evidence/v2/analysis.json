@@ -231,7 +231,7 @@
       }
     }
   },
-  "annotation_status": "human",
+  "annotation_status": "llm_judge",
   "annotation_agreement": null,
   "evidence_status": "exploratory_pilot"
 }
