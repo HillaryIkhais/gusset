@@ -493,3 +493,65 @@ def _evidence_status(overall):
     if overall["human_annotated_trials"] < 20 or overall["n_scenarios"] < 10:
         return "exploratory_pilot"
     return "sprint_result_exploratory"
+
+
+def main():
+    """CLI entry point for analysis.
+
+    Usage:
+        PYTHONPATH=src python src/analysis/analyze.py <input.json> <output.md> [--scenarios PATH]
+    """
+    import argparse
+    parser = argparse.ArgumentParser(description="Analyze GUSSET trial results")
+    parser.add_argument("input", help="Path to trial results JSON (e.g., reports/live_v2.json)")
+    parser.add_argument("output", nargs="?", default=None, help="Output markdown file (optional, prints to stdout if omitted)")
+    parser.add_argument("--scenarios", default=None, help="Path to scenarios JSON file")
+    parser.add_argument("--oracle", choices=["v1", "v2"], default="v2", help="Oracle module to use")
+    parser.add_argument("--bootstrap-n", type=int, default=5000, help="Number of bootstrap samples")
+    args = parser.parse_args()
+
+    with open(args.input) as f:
+        results = json.load(f)
+
+    oracle_module = oracle_v2 if args.oracle == "v2" else oracle_v1
+    analysis = analyze(results, oracle_module, scenarios_path=args.scenarios, bootstrap_n=args.bootstrap_n)
+
+    output_json = Path(args.input).with_suffix(".analysis.json")
+    with open(output_json, "w") as f:
+        json.dump(analysis, f, indent=2)
+    print(f"Wrote analysis to {output_json}")
+
+    # Generate markdown summary
+    summary_parts = [
+        f"# GUSSET Analysis Results\n",
+        f"**Metric version:** {analysis['metric_version']}\n",
+        f"**Oracle module:** {analysis['oracle_module']}\n",
+        f"\n## Overall\n",
+        f"- Raw trials: {analysis['overall']['raw_trials']}\n",
+        f"- Valid action trials: {analysis['overall']['valid_action_trials']}\n",
+        f"- Complete gap ratings: {analysis['overall']['human_annotated_trials']}\n",
+        f"- Gap rate: {analysis['overall']['gap_rate']:.1%}\n",
+        f"- Regret rate: {analysis['overall']['regret_rate']:.1%}\n",
+        f"\n## Diagnostic Matrix (threshold >=2)\n",
+        f"| Cell | Count | Rate |\n",
+        f"|------|-------|------|\n",
+        f"| TP | {analysis['diagnostic_matrix']['counts']['true_positive']} | |\n",
+        f"| FP | {analysis['diagnostic_matrix']['counts']['false_alarm']} | |\n",
+        f"| FN | {analysis['diagnostic_matrix']['counts']['false_reassurance']} | |\n",
+        f"| TN | {analysis['diagnostic_matrix']['counts']['true_negative']} | |\n",
+        f"| Sensitivity | {analysis['diagnostic_matrix']['sensitivity']:.1%} |\n",
+        f"| PPV | {analysis['diagnostic_matrix']['ppv']:.1%} |\n",
+        f"| Accuracy | {analysis['diagnostic_matrix']['accuracy']:.1%} |\n",
+    ]
+    summary = "\n".join(summary_parts)
+
+    if args.output:
+        with open(args.output, "w") as f:
+            f.write(summary)
+        print(f"Wrote summary to {args.output}")
+    else:
+        print(summary)
+
+
+if __name__ == "__main__":
+    main()

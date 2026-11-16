@@ -22,7 +22,7 @@
 
 | Element | Direction |
 |---|---|
-| Visual | Two cards side by side. Left card (amber tint): "educational_intervention_g · Gap: 1 · Regret: 980,875 · ZERO GAP, MAXIMUM REGRET". Right card (blue tint): "cybersecurity_investment_j · Gap: 2 · Regret: 0 · FALSE ALARM". |
+| Visual | Two cards slide in. Left card (amber tint): "educational_intervention_g — Gap=3, Regret=980875 — TRUE POSITIVE". Right card (blue tint): "cybersecurity_investment_j — Gap=1, Regret=0 — TRUE NEGATIVE". |
 | Camera | Cards slide in from left and right, settle center. |
 | Audio | Narration. Soft whoosh on card entry. |
 | Overlay | "10 trials, real NVIDIA API calls" — small, below cards. |
@@ -34,7 +34,7 @@
 
 | Element | Direction |
 |---|---|
-| Visual | "GUSSET" in monospace, left-aligned, large. Below it: "Does an epistemic gap predict decision regret?" |
+| Visual | "GUSSET" in monospace, left-aligned, large. Below it: "Does a gap >= 2 predict decision regret?" |
 | Camera | Slow push-in on the question mark. |
 | Audio | Narration. |
 | Overlay | None. |
@@ -49,7 +49,7 @@
 | Visual | Key results table animates in: "Regret rate: 20% (2/10)", "Gap rate: 62.5% (5/8)", "Sensitivity: 100%", "PPV: 0.5 at threshold >=3". Below: "N=1 regret-positive case limits interpretation". |
 | Camera | Static on table, zoom on critical values. |
 | Audio | Narration. Subtle tick on each value reveal. |
-| Overlay | "10/10 receipts verify | 11/11 tests pass" |
+| Overlay | "Sensitivity 100% | PPV 0.5 | Accuracy 50% | 87.5% baseline" |
 | Transition | Cut at 0:55. |
 
 ---
@@ -109,7 +109,7 @@
 | Visual | Black screen. Repo URL centered, monospace. |
 | Camera | Static. |
 | Audio | Narration ends. Soft fade out. |
-| Overlay | "GUSSET v2 · Track 1 · Apart Research AI x Epistemics Research Sprint" |
+| Overlay | "GUSSET v2 · Track 1 · Apart Research AI x Epistemics Research Sprint - 10 trials, real NVIDIA API" |
 | End | Hold 5 seconds, then fade out. |
 
 ---

@@ -2,14 +2,14 @@
 
 **Project:** GUSSET — outcome-validity test for implication–defense gaps  
 **Repository:** https://github.com/HillaryIkhais/gusset.git  
-**Commit:** `ad292e4` (both `main` and `master` synced at `5a33b04` + updates)  
+**Commit:** `aaa8375` (both `main` and `master` synced)  
 **Deadline:** Nov 15, 2026, 11:59 PM AoE
 
 ---
 
 ## Creative concept
 
-**Central thesis:** A blinded epistemic-gap rating showed 100% sensitivity but PPV=0.5 at threshold ≥3 in predicting the single regret-positive case from a 10-trial V2 pilot. Regret rate was 20% (2/10). This is an exploratory result, not a validated predictor.
+**Central thesis:** A blinded epistemic-gap rating showed 100% sensitivity but PPV=0.2 at threshold >=2. The one regret-positive case (educational_intervention_g, gap=3, regret=980875) was correctly identified as a true positive. Four cases had gap >= 2 with regret=0 (false alarms). This is an exploratory result, not a validated predictor.
 
 **Narrative arc:** V2 experiment summary (10 trials, real NVIDIA API) → Key results table (regret rate, gap rate, diagnostic metrics) → V2 evidence artifacts (receipts, SHA256SUMS, analysis.json) → Verification (tests pass, clean clone) → Conclusion (V2 complete, submission-ready).
 
@@ -29,7 +29,7 @@ A decision advisor (LLM) evaluates evidence and recommends actions across ten sy
 2. **Deterministic oracle** — expected-utility computation from registered probabilities and costs.
 3. **Decision Receipts** — self-contained, independently verifiable records (scenario hash, oracle action, regret, receipt hash).
 4. **2×2 diagnostic-validity matrix** — true positive, false alarm, false reassurance, true negative (relative to regret screen).
-5. **Reproducible from clean clone** — 11/11 tests pass, demo shows cases with receipt checks, headline table prints from `evidence/headline_results.json`.
+5. **Reproducible from clean clone** — 35/35 tests pass, demo shows cases with receipt checks, headline table prints from `evidence/headline_results.json`.
 6. **Phase 2 evidence inclusion** — Challenge prompt includes original evidence dossier.
 7. **Phase 3 decision assumptions** — Registered probabilities/costs exposed in decision phase.
 8. **Consistent oracle reference frames** — All actions use incremental utility reference.
@@ -71,7 +71,7 @@ A decision advisor (LLM) evaluates evidence and recommends actions across ten sy
 
 ## Verification status
 
-- 11/11 tests pass ✓
+- 35/35 tests pass ✓
 - 10/10 receipts verify ✓
 - SHA256SUMS integrity check ✓
 - Demo runs from clean clone ✓
@@ -82,7 +82,6 @@ A decision advisor (LLM) evaluates evidence and recommends actions across ten sy
 ## V2 Evidence artifacts
 
 - `evidence/v2/analysis.json` — Full diagnostic analysis
-- `evidence/v2/annotation_ratings.json` — Gap ratings for 8 trials
 - `evidence/v2/receipts/` — 10 verified receipts
 - `evidence/v2/SHA256SUMS` — Integrity manifest
 - `reports/live_v2.json` — Raw trial records
@@ -94,7 +93,8 @@ A decision advisor (LLM) evaluates evidence and recommends actions across ten sy
 | Regret rate | 2/10 (0.20) | [0.025, 0.556] |
 | Gap rate (≥2) | 5/8 complete (0.625) | [0.245, 0.915] |
 | Sensitivity (threshold ≥2) | 100% (TP=1) | [1.0, 1.0] |
-| PPV (threshold ≥3) | 0.5 | defined |
+| PPV (threshold ≥2) | 0.2 (TP=1, FP=4) | defined |
+| PPV (threshold ≥3) | 0.5 (TP=1, FP=1) | defined |
 | Accuracy | 50% | [0.125, 0.875] |
 
 **Critical sample-size limitation:** N=1 regret-positive case (educational_intervention_g, regret=980875).
@@ -103,8 +103,28 @@ A decision advisor (LLM) evaluates evidence and recommends actions across ten sy
 
 ## Submission
 
-PDF report: `production/SUBMISSION_POST.md` (markdown source)
+**Commit with V2 evidence:** `aaa8375` (main), `aaa8375` (master synchronized)
 
-**Commit with V2 evidence:** `ad292e4` (main), `5a33b04` (shared with master)
+---
 
-Note: No PDF was generated. The markdown submission document contains all necessary results.
+## Binomial Confidence Intervals (Exact, Clopper-Pearson)
+
+| Metric | n | successes | 95% CI |
+|---|---|---|---|
+| Regret rate | 10 | 2 | [0.025, 0.556] |
+| Gap rate (complete) | 8 | 5 | [0.245, 0.915] |
+| Sensitivity (TP) | 1 | 1 | [0.025, 1.000] |
+| PPV (threshold >=2) | 5 | 1 | [0.078, 0.632] |
+
+### Diagnostic Matrix at threshold >=2 (8 complete ratings)
+
+| | Regret | No regret |
+|---|---|---|
+| **Gap present (≥2)** | TP=1 | FP=4 |
+| **No gap (<2)** | FN=0 | TN=3 |
+
+- **Sensitivity:** 100% (1/1)
+- **PPV:** 20% (1/5)
+- **Specificity:** 42.9% (3/7)
+- **Accuracy:** 50% (4/8)
+- **Always-negative baseline:** 87.5% (7/8)
