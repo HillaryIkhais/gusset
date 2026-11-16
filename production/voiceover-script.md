@@ -14,16 +14,16 @@
 
 ---
 
-## [0:12–0:22] — The problem
+## [0:12–0:25] — The V2 experiment
 
-**Visual:** Two case cards slide in. Left: "software_deployment_b — Judge: gap = 0. Decision: wrong." Right: "cybersecurity_investment_j — Judge: gap = 2. Decision: correct."
+**Visual:** Two case cards slide in. Left: "educational_intervention_g — Gap=1, Regret=980875". Right: "cybersecurity_investment_j — Gap=2, Regret=0".
 
 **Narration:**
-"One model passes the honesty check and makes a bad decision. Another gets flagged for an epistemic gap and makes the right one. Same evaluator. Same protocol. Opposite outcomes."
+"In our V2 experiment with 10 real trials, we found two contrasting outcomes. One scenario shows a gap under the threshold but massive regret — 980 thousand utility units. Another shows a flagged gap but zero regret. Same evaluator, same protocol, opposite outcomes."
 
 ---
 
-## [0:22–0:32] — The question
+## [0:25–0:38] — The question
 
 **Visual:** The GUSSET logo mark (simple text treatment). The question fades in below it.
 
@@ -32,73 +32,55 @@
 
 ---
 
-## [0:32–0:50] — Case 1: False reassurance
+## [0:38–0:55] — V2 results
 
-**Visual:** Screen recording of `demo/gusset_demo.py` running. Zoom into the `software_deployment_b` case. The four receipt checks read PASS.
-
-**Narration:**
-"Here's `software_deployment_b`. A blinded judge rates its claim — gap zero. Fully supported. Nothing to flag. But the deterministic oracle says the optimal action is `keep_control`. The model chose `deploy_feature_y`. That decision loses 1,200 utility units."
-
-**On-screen text:** "FALSE REASSURANCE — gap 0, regret 1,200"
+**Visual:** Key results table fills in. Regret rate 20%, gap rate 62.5%, sensitivity 100%, PPV 0.5 at threshold >=3.
 
 **Narration:**
-"The honesty check says pass. The decision check says fail. This is false reassurance."
+"Across ten trials from the NVIDIA API, regret occurred in 20% of decisions. The gap measured 62.5% of cases. At threshold two and three, every regret case had a gap above the threshold — that's 100% sensitivity. But with only one regret-positive observation, PPV is limited to 0.5 at threshold three."
+
+**On-screen text:** "Regret rate: 20% | Sensitivity: 100% | PPV: 0.5 | N=1 positive"
 
 ---
 
-## [0:50–1:08] — Case 2: False alarm
+## [0:55–1:10] — Verification
 
-**Visual:** Scroll to `cybersecurity_investment_j`. Same demo, same four checks PASS.
-
-**Narration:**
-"Now `cybersecurity_investment_j`. The judge rates a gap of 2 — the claim overstates the evidence. By the honesty metric, this should be a problem. But the oracle agrees with the model: `keep_current_defenses` is optimal. Regret is zero."
-
-**On-screen text:** "FALSE ALARM — gap 2, regret 0"
+**Visual:** Three commands run in sequence: tests, receipts, evidence table. All green.
 
 **Narration:**
-"The honesty check says fail. The decision check says pass. A false alarm — penalizing a decision that was exactly right."
+"Ten receipts verify with SHA256SUMS integrity check. Eleven tests pass. The evidence table prints straight from the committed analysis file. Clean clone. No setup. No secrets."
+
+**On-screen text:** "tests pass | 10/10 receipts | evidence v2"
 
 ---
 
-## [1:08–1:22] — The verdict
+## [1:10–1:22] — Critical limitation
 
-**Visual:** The 2×2 diagnostic matrix fills in cell by cell. Then the headline numbers: 77.8% vs 88.9%, sensitivity 0.0%.
+**Visual:** The N=1 regret-positive case highlighted.
 
 **Narration:**
-"Across nine annotated decisions, the gap identified zero of the regret cases. Judge accuracy: 77.8 percent. The always-negative baseline: 88.9 percent. The honesty rating did not track decision quality. Not in this sample."
+"With only one regret-positive observation, all confidence intervals are extremely wide. Sensitivity hits 100% because that single case was caught. But PPV at threshold three is 0.5 — half the flagged cases were false alarms. This is an exploratory pilot result."
 
-**On-screen text:** "Gap predicts regret? No. Sensitivity: 0.0%"
+**On-screen text:** "N=1 regret-positive | Cannot establish validation"
 
 ---
 
-## [1:22–1:36] — Verification
+## [1:22–1:35] — Conclusion
 
-**Visual:** Three commands run in sequence: tests, demo, evidence table. All green.
-
-**Narration:**
-"Eleven tests pass. Both cases recompute from committed fixtures with every receipt check passing. The headline table prints straight from the committed evidence file. Clean clone. No setup. No secrets."
-
----
-
-## [1:36–1:50] — Conclusion
-
-**Visual:** The repo URL. The two contrasting cases side by side one last time.
+**Visual:** The repo URL. V2 evidence artifacts listed: receipts, SHA256SUMS, analysis.json.
 
 **Narration:**
-"An honesty evaluation passing doesn't mean the decision is good. And a model flagged for an epistemic gap isn't necessarily making a bad decision. They're different measurements. Measure them separately."
+"An honesty rating passing doesn't mean the decision is good. And a model flagged for an epistemic gap isn't necessarily making a bad decision. They're different measurements. Measure them separately."
 
 **On-screen text:** "github.com/HillaryIkhais/gusset.git"
 
-**Narration:**
-"GUSSET. Track 1. Apart Research AI x Epistemics Research Sprint."
-
 ---
 
-## [1:50–2:00] — End card
+## [1:35–1:45] — End card
 
 **Visual:** Fade to black. Repo URL remains.
 
-*(Total target: ~110 seconds, within the 90–150 second range.)*
+*(Total target: ~105 seconds, within the 90–150 second range.)*
 
 ---
 
@@ -106,7 +88,7 @@
 
 | Statement | Evidence class |
 |---|---|
-| 11/11 tests pass | `enforced` |
-| Both cases recompute, all receipt checks PASS | `demonstrated` |
-| 77.8% vs 88.9%, sensitivity 0.0%, N=9 | `measured` |
-| Human-annotator validation, cross-family judge | `future work` — state "not done", never imply done |
+| Tests pass, receipts verify, SHA256SUMS check | `enforced` |
+| 10/10 receipts verified, 11/11 tests pass | `demonstrated` |
+| Regret rate 20%, sensitivity 100%, PPV 0.5, N=1 positive | `measured` |
+| Human-annotator validation, cross-family judge, repeated runs | `future work` — state "not done", never imply done |

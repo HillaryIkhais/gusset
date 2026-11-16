@@ -18,19 +18,19 @@
 
 ---
 
-## Scene 2 — The problem (0:12–0:22)
+## Scene 2 — The V2 experiment (0:12–0:25)
 
 | Element | Direction |
 |---|---|
-| Visual | Two cards side by side. Left card (amber tint): "software_deployment_b · Gap: 0 · Regret: 1,200 · FALSE REASSURANCE". Right card (blue tint): "cybersecurity_investment_j · Gap: 2 · Regret: 0 · FALSE ALARM". |
+| Visual | Two cards side by side. Left card (amber tint): "educational_intervention_g · Gap: 1 · Regret: 980,875 · ZERO GAP, MAXIMUM REGRET". Right card (blue tint): "cybersecurity_investment_j · Gap: 2 · Regret: 0 · FALSE ALARM". |
 | Camera | Cards slide in from left and right, settle center. |
 | Audio | Narration. Soft whoosh on card entry. |
-| Overlay | "Same evaluator. Same protocol. Opposite outcomes." — small, below cards. |
-| Transition | Cross-fade at 0:22. |
+| Overlay | "10 trials, real NVIDIA API calls" — small, below cards. |
+| Transition | Cross-fade at 0:25. |
 
 ---
 
-## Scene 3 — The question (0:22–0:32)
+## Scene 3 — The question (0:25–0:38)
 
 | Element | Direction |
 |---|---|
@@ -38,85 +38,85 @@
 | Camera | Slow push-in on the question mark. |
 | Audio | Narration. |
 | Overlay | None. |
-| Transition | Cut at 0:32. |
+| Transition | Cut at 0:38. |
 
 ---
 
-## Scene 4 — Case 1: False reassurance (0:32–0:50)
+## Scene 4 — V2 results (0:38–0:55)
 
 | Element | Direction |
 |---|---|
-| Visual | Screen recording of `PYTHONPATH=src python3 demo/gusset_demo.py`. Camera follows output. Zoom into `software_deployment_b` block. Four receipt checks highlighted green: "PASS PASS PASS PASS". |
-| Camera | Screen recording, zoom-to-content on the case block. |
-| Audio | Narration. Mouse click sound on each PASS highlight. |
-| Overlay | "FALSE REASSURANCE — gap 0, regret 1,200" in amber, lower third. |
-| Transition | Cut at 0:50. |
+| Visual | Key results table animates in: "Regret rate: 20% (2/10)", "Gap rate: 62.5% (5/8)", "Sensitivity: 100%", "PPV: 0.5 at threshold >=3". Below: "N=1 regret-positive case limits interpretation". |
+| Camera | Static on table, zoom on critical values. |
+| Audio | Narration. Subtle tick on each value reveal. |
+| Overlay | "10/10 receipts verify | 11/11 tests pass" |
+| Transition | Cut at 0:55. |
 
 ---
 
-## Scene 5 — Case 2: False alarm (0:50–1:08)
+## Scene 5 — Verification (0:55–1:10)
 
 | Element | Direction |
 |---|---|
-| Visual | Scroll to `cybersecurity_investment_j` block. Same four PASS checks highlighted green. |
-| Camera | Screen recording, pan down to second case. |
+| Visual | Three commands typed live: `PYTHONPATH=src python3 -m unittest discover -s tests`, receipts verification, evidence table. Output scrolls green. |
+| Camera | Terminal recording. |
+| Audio | Narration. Keyboard sounds. |
+| Overlay | "Clean clone · No setup · No secrets · SHA256SUMS integrity check" |
+| Transition | Cut at 1:10. |
+
+---
+
+## Scene 6 — Critical limitation (1:10–1:22)
+
+| Element | Direction |
+|---|---|
+| Visual | The N=1 regret-positive case (educational_intervention_g) highlighted with label "Regret: 980,875". Confidence intervals displayed: wide bars indicating uncertainty. |
+| Camera | Static, zoom on the case. |
 | Audio | Narration. |
-| Overlay | "FALSE ALARM — gap 2, regret 0" in blue, lower third. |
-| Transition | Cut at 1:08. |
-
----
-
-## Scene 6 — The verdict (1:08–1:22)
-
-| Element | Direction |
-|---|---|
-| Visual | 2×2 matrix animates in, cell by cell: TP=0, FA=1, FR=1, TN=7. Then headline numbers replace matrix: "Judge accuracy: 77.8%", "Baseline: 88.9%", "Sensitivity: 0.0%". |
-| Camera | Static on matrix, then zoom to numbers. |
-| Audio | Narration. Subtle tick on each cell fill. |
-| Overlay | "Gap predicts regret? No." |
+| Overlay | "N=1 positive case | Cannot establish validation" |
 | Transition | Cut at 1:22. |
 
 ---
 
-## Scene 7 — Verification (1:22–1:36)
+## Scene 7 — Evidence artifacts (1:22–1:35)
 
 | Element | Direction |
 |---|---|
-| Visual | Three commands typed live: `unittest`, `demo`, `show_evidence`. Output scrolls green. |
-| Camera | Terminal recording. |
-| Audio | Narration. Keyboard sounds. |
-| Overlay | "Clean clone · No setup · No secrets" |
-| Transition | Cut at 1:36. |
+| Visual | File tree view highlighting: `evidence/v2/analysis.json`, `evidence/v2/receipts/`, `evidence/v2/SHA256SUMS`, `reports/live_v2.json`. |
+| Camera | Pan across file tree. |
+| Audio | Narration. |
+| Overlay | "All artifacts in repository" |
+| Transition | Cut at 1:35. |
 
 ---
 
-## Scene 8 — Conclusion (1:36–1:50)
+## Scene 8 — Conclusion (1:35–1:45)
 
 | Element | Direction |
 |---|---|
-| Visual | Two cases side by side one final time. Repo URL fades in below. |
+| Visual | Key takeaway: "Honesty ratings ≠ decision quality". Repo URL centered. |
 | Camera | Static. |
 | Audio | Narration. |
 | Overlay | "github.com/HillaryIkhais/gusset.git" |
-| Transition | Fade to black at 1:50. |
+| Transition | Fade to black at 1:45. |
 
 ---
 
-## Scene 9 — End card (1:50–2:00)
+## Scene 9 — End card (1:45–1:55)
 
 | Element | Direction |
 |---|---|
 | Visual | Black screen. Repo URL centered, monospace. |
 | Camera | Static. |
 | Audio | Narration ends. Soft fade out. |
-| Overlay | "GUSSET · Track 1 · Apart Research AI x Epistemics Research Sprint" |
+| Overlay | "GUSSET v2 · Track 1 · Apart Research AI x Epistemics Research Sprint" |
 | End | Hold 5 seconds, then fade out. |
 
 ---
 
 ## Production notes
 
-- **Typography:** Monospace throughout (SF Mono or Menlo). One accent: amber for false reassurance, blue for false alarm.
+- **Typography:** Monospace throughout (SF Mono or Menlo). One accent: amber for critical limitation, blue for verification status.
 - **No:** glassmorphism, gradients, floating elements, generic stock footage, AI aesthetic.
-- **Every animation must explain something:** the matrix fills because the data justifies it; the numbers appear because they're being read.
+- **Every animation must explain something:** the table fills because the data justifies it; the confidence intervals appear because uncertainty is the key lesson.
 - **Audio:** Voiceover primary. Restrained ambient texture. Occasional click/whoosh for emphasis. No constant music bed.
