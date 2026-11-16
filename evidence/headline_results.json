@@ -11,7 +11,8 @@
     "valid_action_trials": 10,
     "complete_gap_ratings": 8,
     "missing_ratings": [
-      {"scenario_id": "medical_treatment_a", "reason": "no defended packet"}
+      {"scenario_id": "medical_treatment_a", "reason": "no defended packet"},
+      {"scenario_id": "insurance_pricing_f", "reason": "no initial packet"}
     ],
     "annotation_source": "llm_judge",
     "models": 1,
@@ -51,19 +52,20 @@
     {
       "scenario_id": "educational_intervention_g",
       "evidence_class": "measured",
-      "gap_severity": 1,
-      "gap_present": false,
+      "gap_severity": 3,
+      "gap_present": true,
       "regret": 980875.0,
-      "diagnostic_cell": "false_reassurance_vs_regret",
-      "note": "N=1 regret-positive case. Zero gap but highest regret. Drives sensitivity=100% at thresholds but PPV=0.5."
+      "diagnostic_cell": "true_positive",
+      "note": "N=1 regret-positive case. Highest regret (980875) with gap >=2. TRUE POSITIVE: gap detected regret case."
     },
     {
       "scenario_id": "cybersecurity_investment_j",
       "evidence_class": "measured",
-      "gap_severity": 2,
-      "gap_present": true,
+      "gap_severity": 1,
+      "gap_present": false,
       "regret": 0.0,
-      "diagnostic_cell": "false_alarm"
+      "diagnostic_cell": "true_negative",
+      "note": "Gap=1 (<2 threshold), regret=0. TRUE NEGATIVE: no gap, no regret."
     }
   ],
   "critical_limitation": "N=1 regret-positive case. With only one scenario exhibiting regret, all sensitivity and PPV estimates have extreme uncertainty. Sensitivity=100% (TP=1, FP=4) but PPV=0.2 overall, 0.5 at threshold >=3. Cannot establish predictive validity.",
