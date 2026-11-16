@@ -20,13 +20,14 @@
     "conditions": ["challenge_no_new_evidence"],
     "primary_condition": "challenge_no_new_evidence",
     "regret_count": 2,
+    "regret_count_complete_gap_ratings": 1,
     "regret_rate": 0.20,
     "regret_ci": [0.025, 0.556],
-    "note": "Exploratory single-model pilot. N=1 regret-positive case (educational_intervention_g, regret=980875). All intervals are extremely wide. Sensitivity = 100% at all thresholds, but PPV = 0.5 at threshold >=3."
+    "note": "2/10 trials show regret (insurance_pricing_f and educational_intervention_g), but only 1 has complete gap ratings. N=1 regret-positive case with gap rating. All intervals are extremely wide. Sensitivity = 100% at all thresholds, but PPV = 0.2 at threshold >=2, 0.5 at threshold >=3."
   },
   "headline": {
     "evidence_class": "measured",
-    "claim": "A blinded epistemic-gap rating showed 100% sensitivity but PPV=0.5 at threshold >=3. Regret rate was 20% (2/10). The single regret-positive case cannot establish predictive validity.",
+    "claim": "A blinded epistemic-gap rating showed 100% sensitivity but PPV=0.2 at threshold >=2. Regret rate was 20% (2/10), but only one regret case had a gap rating. The single regret-positive case with gap rating cannot establish predictive validity.",
     "diagnostic_matrix": {
       "n": 8,
       "true_positive": 1,
@@ -48,6 +49,19 @@
     "sensitivity": 1.0,
     "n": 10
   },
+  "regret_cases": [
+    {
+      "scenario_id": "insurance_pricing_f",
+      "regret": 980.0,
+      "gap_rating": "missing (no initial packet)"
+    },
+    {
+      "scenario_id": "educational_intervention_g",
+      "regret": 980875.0,
+      "gap_severity": 3,
+      "diagnostic_cell": "true_positive"
+    }
+  ],
   "contrasting_cases": [
     {
       "scenario_id": "educational_intervention_g",
@@ -56,7 +70,7 @@
       "gap_present": true,
       "regret": 980875.0,
       "diagnostic_cell": "true_positive",
-      "note": "N=1 regret-positive case. Highest regret (980875) with gap >=2. TRUE POSITIVE: gap detected regret case."
+      "note": "N=1 regret-positive case with gap rating. Highest regret (980875) with gap >=2. TRUE POSITIVE: gap detected regret case."
     },
     {
       "scenario_id": "cybersecurity_investment_j",
@@ -68,9 +82,9 @@
       "note": "Gap=1 (<2 threshold), regret=0. TRUE NEGATIVE: no gap, no regret."
     }
   ],
-  "critical_limitation": "N=1 regret-positive case. With only one scenario exhibiting regret, all sensitivity and PPV estimates have extreme uncertainty. Sensitivity=100% (TP=1, FP=4) but PPV=0.2 overall, 0.5 at threshold >=3. Cannot establish predictive validity.",
+  "critical_limitation": "2 trials have regret, but only 1 has a complete gap rating. N=1 regret-positive case with gap rating limits statistical power. Sensitivity=100% (TP=1, FP=4) but PPV=0.2 overall, 0.5 at threshold >=3. Cannot establish predictive validity.",
   "evidence_classes": {
-    "enforced": "Guaranteed by tests/verifier: 11/11 tests, 10/10 receipts verified, SHA256SUMS integrity check passed.",
+    "enforced": "Guaranteed by tests/verifier: 35/35 tests, 10/10 receipts verified, SHA256SUMS integrity check passed.",
     "demonstrated": "All 10 trials recomputed from committed scenarios and NVIDIA API calls.",
     "measured": "Computed from live API runs; numbers in this file.",
     "future_work": "Human-annotator validation, cross-family judge, multiple models, repeated runs."
